@@ -30,7 +30,7 @@ class _ServiceRecordsPageState extends State<ServiceRecordsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: ListView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100.0), // Added bottom padding to avoid navigation bar overlap
         children: [
           const Text(
             'Service Records',
@@ -237,6 +237,7 @@ class _AddServiceRecordPageState extends State<AddServiceRecordPage> {
                 },
                 child: const Text('Save Service Record'),
               ),
+              const SizedBox(height: 80), // Added bottom padding to avoid navigation bar overlap
             ],
           ),
         ),

@@ -8,7 +8,7 @@ class ContactPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: ListView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100.0), // Added bottom padding to avoid navigation bar overlap
         children: [
           const Text(
             'Contact Support',
@@ -127,7 +127,13 @@ class ContactPage extends StatelessWidget {
   }
 
   Widget _buildContactCard(
-      BuildContext context, String title, String description, IconData icon, Color color, VoidCallback onTap) {
+      BuildContext context,
+      String title,
+      String description,
+      IconData icon,
+      Color color,
+      VoidCallback onTap,
+      ) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
@@ -148,8 +154,8 @@ class ContactPage extends StatelessWidget {
     const message = 'Hello, I need assistance with my generator.';
     final url = 'https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}';
 
-    if (await canLaunch(url)) {
-      await launch(url);
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
     } else {
       throw 'Could not launch WhatsApp';
     }
@@ -159,8 +165,8 @@ class ContactPage extends StatelessWidget {
     const phoneNumber = '+60123456789'; // Replace with actual phone number
     final url = 'tel:$phoneNumber';
 
-    if (await canLaunch(url)) {
-      await launch(url);
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
     } else {
       throw 'Could not launch phone dialer';
     }
@@ -170,10 +176,11 @@ class ContactPage extends StatelessWidget {
     const email = 'support@gensetassistant.com';
     const subject = 'Generator Support Request';
     const body = 'Please describe your issue:';
-    final url = 'mailto:$email?subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(body)}';
+    final url =
+        'mailto:$email?subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(body)}';
 
-    if (await canLaunch(url)) {
-      await launch(url);
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
     } else {
       throw 'Could not launch email client';
     }
@@ -181,10 +188,11 @@ class ContactPage extends StatelessWidget {
 
   void _launchMaps() async {
     const address = 'Service Center Location'; // Replace with actual address
-    final url = 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}';
+    final url =
+        'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}';
 
-    if (await canLaunch(url)) {
-      await launch(url);
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
     } else {
       throw 'Could not launch maps';
     }

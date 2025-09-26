@@ -185,6 +185,7 @@ class TroubleshootingDetailPage extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 80), // Added bottom padding to avoid navigation bar overlap
           ],
         ),
       ),
