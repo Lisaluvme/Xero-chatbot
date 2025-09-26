@@ -17,13 +17,30 @@ export async function handler(event, context) {
       body: event.body,
     });
 
-    const data = await response.text();
+    const data = await response.json();
+
+    // Filter out Mains Failure alarms
+    if (Array.isArray(data)) {
+      const filteredData = data.filter(alarm =>
+        !alarm.alarmType?.toLowerCase().includes('mains failure') &&
+        !alarm.description?.toLowerCase().includes('mains failure') &&
+        !alarm.message?.toLowerCase().includes('mains failure')
+      );
+      return {
+        statusCode: response.status,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(filteredData, null, 2),
+      };
+    }
+
     return {
       statusCode: response.status,
       headers: {
-        'Content-Type': response.headers.get('content-type') || 'application/json',
+        'Content-Type': 'application/json',
       },
-      body: data,
+      body: JSON.stringify(data, null, 2),
     };
   } catch (error) {
     return {
