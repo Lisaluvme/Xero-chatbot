@@ -90,7 +90,7 @@ class _LearnPageState extends State<LearnPage>
         iconTheme: const IconThemeData(color: Colors.black87),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100.0), // Added bottom padding to avoid navigation bar overlap
         child: GridView.builder(
           itemCount: modules.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

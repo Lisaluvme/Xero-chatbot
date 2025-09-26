@@ -94,7 +94,7 @@ class MaintenancePage extends StatelessWidget {
         title: const Text("Generator Maintenance"),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100.0), // Added bottom padding to avoid navigation bar overlap
         children: sections.asMap().entries.map((entry) {
           final index = entry.key;
           final section = entry.value;
