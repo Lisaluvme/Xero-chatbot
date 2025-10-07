@@ -758,7 +758,7 @@ class _AiChatPageState extends State<AiChatPage> {
         onPressed: () {
           // Navigate back to home page (first tab in bottom navigation)
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const HomePage()),
+            MaterialPageRoute(builder: (context) => HomePage()),
             (route) => false,
           );
         },

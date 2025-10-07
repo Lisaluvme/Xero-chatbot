@@ -184,7 +184,7 @@ class _HomePageState extends State<HomePage> {
           // Navigate to AI Chat page
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const AiChatPage()),
+            MaterialPageRoute(builder: (context) => AiChatPage()),
           );
         },
         backgroundColor: const Color(0xFF1E3A8A), // Primary blue
