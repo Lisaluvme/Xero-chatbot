@@ -297,10 +297,10 @@ class _LoginPageState extends State<LoginPage> {
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
+                style: const TextStyle(color: Color(0xFF333333)),
                 decoration: InputDecoration(
                   hintText: 'Email',
-                  hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSecondary),
+                  hintStyle: const TextStyle(color: Color(0xFFB3B3B3)),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
@@ -323,10 +323,10 @@ class _LoginPageState extends State<LoginPage> {
               TextField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
-                style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
+                style: const TextStyle(color: Color(0xFF333333)),
                 decoration: InputDecoration(
                   hintText: 'Password',
-                  hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSecondary),
+                  hintStyle: const TextStyle(color: Color(0xFFB3B3B3)),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
@@ -345,7 +345,7 @@ class _LoginPageState extends State<LoginPage> {
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                      color: Theme.of(context).colorScheme.onSecondary,
+                      color: const Color(0xFFB3B3B3),
                     ),
                     onPressed: () {
                       setState(() => _obscurePassword = !_obscurePassword);
