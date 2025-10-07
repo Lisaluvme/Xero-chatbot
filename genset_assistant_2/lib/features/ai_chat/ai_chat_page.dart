@@ -12,7 +12,7 @@ import 'dart:io';
 import '../../services/knowledge_base_service.dart';
 import '../../services/wordpress_service.dart' as deepseek_service;
 import '../../services/firestore_service.dart';
-import '../../main.dart';
+import '../../main.dart' as main_app;
 
 class AiChatPage extends StatefulWidget {
   final String? initialMessage;
@@ -157,6 +157,10 @@ class _AiChatPageState extends State<AiChatPage> {
       String userMessage = _controller.text.trim();
       _addMessage(userMessage, true);
       _controller.clear();
+
+      // Show global chat shortcut on all pages after first message
+      main_app.HomePage.showChatShortcut();
+
       setState(() {
         _showHomeShortcut = true; // Show home shortcut after sending first message
       }); // 刷新按钮状态

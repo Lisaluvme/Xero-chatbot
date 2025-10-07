@@ -138,12 +138,24 @@ class PlaceholderScreen extends StatelessWidget {
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
+  // Static method to show chat shortcut from anywhere in the app
+  static void showChatShortcut() {
+    final state = _homePageKey.currentState;
+    if (state != null) {
+      state._showChatShortcutButton();
+    }
+  }
+
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
+// Global key to access HomePage state
+final GlobalKey<_HomePageState> _homePageKey = GlobalKey<_HomePageState>();
+
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
+  bool _showChatShortcut = false;
 
   static const List<Widget> _pages = <Widget>[
     HomePageWidget(),
@@ -158,10 +170,27 @@ class _HomePageState extends State<HomePage> {
     setState(() => _selectedIndex = index);
   }
 
+  void _showChatShortcutButton() {
+    setState(() => _showChatShortcut = true);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _homePageKey,
       extendBody: true, // 让底部导航半透明效果更自然
+      floatingActionButton: _showChatShortcut ? FloatingActionButton(
+        onPressed: () {
+          // Navigate to AI Chat page
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AiChatPage()),
+          );
+        },
+        backgroundColor: const Color(0xFF1E3A8A), // Primary blue
+        child: const Icon(Icons.chat, color: Colors.white),
+        tooltip: 'Chat with Assistant',
+      ) : null,
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 400),
         transitionBuilder: (child, animation) {
