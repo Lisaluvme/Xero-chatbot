@@ -9,10 +9,10 @@ import 'features/service_records/service_records_page.dart';
 import 'features/live_status/live_status_page.dart';
 import 'features/contact/contact_page.dart';
 import 'features/products/products_page.dart';
-import 'features/ai_chat/ai_chat_page.dart' show AiChatWidget;
+import 'features/ai_chat/ai_chat_page.dart';
 import 'features/auth/login_page.dart';
 import 'services/notification_service.dart';
-import 'widgets/home_page.dart';
+import 'widgets/home_page.dart' show HomePageWidget;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

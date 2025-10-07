@@ -13,6 +13,7 @@ import '../../services/knowledge_base_service.dart';
 import '../../services/wordpress_service.dart' as deepseek_service;
 import '../../services/firestore_service.dart';
 import '../../main.dart' as main_app;
+import '../../widgets/home_page.dart' show HomePageWidget;
 
 class AiChatPage extends StatefulWidget {
   final String? initialMessage;
@@ -758,7 +759,7 @@ class _AiChatPageState extends State<AiChatPage> {
         onPressed: () {
           // Navigate back to home page (first tab in bottom navigation)
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => HomePage()),
+            MaterialPageRoute(builder: (context) => HomePageWidget()),
             (route) => false,
           );
         },
