@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
 class NotificationService {
@@ -7,14 +8,23 @@ class NotificationService {
   NotificationService._internal();
 
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+  FlutterLocalNotificationsPlugin();
 
   Future<void> initialize() async {
+    // 初始化时区
+    tz.initializeTimeZones();
+    tz.setLocalLocation(tz.getLocation('Asia/Kuala_Lumpur'));
+
+    // ⚠️ 这里使用你准备好的通知图标
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    AndroidInitializationSettings('ic_notification');
 
     const DarwinInitializationSettings initializationSettingsIOS =
-        DarwinInitializationSettings();
+    DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
 
     const InitializationSettings initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
@@ -23,49 +33,38 @@ class NotificationService {
 
     await _flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
-      onDidReceiveNotificationResponse: _onDidReceiveNotificationResponse,
+      onDidReceiveNotificationResponse: (response) {
+        print('Notification tapped: ${response.payload}');
+      },
     );
   }
 
-  void _onDidReceiveNotificationResponse(NotificationResponse response) {
-    // Handle notification tap
-    print('Notification tapped: ${response.payload}');
-  }
-
-  Future<void> showServiceReminder({
+  Future<void> showFaultAlert({
     required int id,
     required String title,
     required String body,
-    required DateTime scheduledDate,
   }) async {
-    const AndroidNotificationDetails androidNotificationDetails =
-        AndroidNotificationDetails(
-      'service_reminder_channel',
-      'Service Reminders',
-      channelDescription: 'Reminders for generator service schedules',
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'fault_alert_channel',
+      'Fault Alerts',
+      channelDescription: 'Alerts for generator faults',
       importance: Importance.max,
       priority: Priority.high,
-      showWhen: true,
+      playSound: true,
+      enableVibration: true,
     );
 
-    const DarwinNotificationDetails darwinNotificationDetails =
-        DarwinNotificationDetails();
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails();
 
-    const NotificationDetails notificationDetails = NotificationDetails(
-      android: androidNotificationDetails,
-      iOS: darwinNotificationDetails,
-    );
+    const NotificationDetails notificationDetails =
+    NotificationDetails(android: androidDetails, iOS: iosDetails);
 
-    await _flutterLocalNotificationsPlugin.zonedSchedule(
+    await _flutterLocalNotificationsPlugin.show(
       id,
       title,
       body,
-      tz.TZDateTime.from(scheduledDate, tz.local),
       notificationDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      payload: 'service_reminder_$id',
+      payload: 'fault_alert_$id',
     );
   }
 
@@ -74,9 +73,8 @@ class NotificationService {
     required String title,
     required String body,
   }) async {
-    const AndroidNotificationDetails androidNotificationDetails =
-        AndroidNotificationDetails(
-      'maintenance_reminder_channel',
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'maintenance_channel',
       'Maintenance Reminders',
       channelDescription: 'Reminders for generator maintenance tasks',
       importance: Importance.high,
@@ -84,13 +82,10 @@ class NotificationService {
       showWhen: true,
     );
 
-    const DarwinNotificationDetails darwinNotificationDetails =
-        DarwinNotificationDetails();
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails();
 
-    const NotificationDetails notificationDetails = NotificationDetails(
-      android: androidNotificationDetails,
-      iOS: darwinNotificationDetails,
-    );
+    const NotificationDetails notificationDetails =
+    NotificationDetails(android: androidDetails, iOS: iosDetails);
 
     await _flutterLocalNotificationsPlugin.show(
       id,
@@ -101,37 +96,38 @@ class NotificationService {
     );
   }
 
-  Future<void> showFaultAlert({
+  Future<void> showServiceReminder({
     required int id,
     required String title,
     required String body,
+    required DateTime scheduledDate,
   }) async {
-    const AndroidNotificationDetails androidNotificationDetails =
-        AndroidNotificationDetails(
-      'fault_alert_channel',
-      'Fault Alerts',
-      channelDescription: 'Alerts for generator faults and issues',
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'service_channel',
+      'Service Reminders',
+      channelDescription: 'Reminders for generator service',
       importance: Importance.max,
-      priority: Priority.max,
-      showWhen: true,
-      enableVibration: true,
+      priority: Priority.high,
       playSound: true,
     );
 
-    const DarwinNotificationDetails darwinNotificationDetails =
-        DarwinNotificationDetails();
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails();
 
-    const NotificationDetails notificationDetails = NotificationDetails(
-      android: androidNotificationDetails,
-      iOS: darwinNotificationDetails,
-    );
+    const NotificationDetails notificationDetails =
+    NotificationDetails(android: androidDetails, iOS: iosDetails);
 
-    await _flutterLocalNotificationsPlugin.show(
+    final tz.TZDateTime tzScheduled = tz.TZDateTime.from(scheduledDate, tz.local);
+
+    await _flutterLocalNotificationsPlugin.zonedSchedule(
       id,
       title,
       body,
+      tzScheduled,
       notificationDetails,
-      payload: 'fault_alert_$id',
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+      UILocalNotificationDateInterpretation.absoluteTime,
+      payload: 'service_reminder_$id',
     );
   }
 

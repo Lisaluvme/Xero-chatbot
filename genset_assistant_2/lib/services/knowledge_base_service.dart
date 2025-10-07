@@ -29,19 +29,30 @@ class ConversationContext {
 
 class KnowledgeBaseService {
   static Map<String, dynamic>? _knowledgeBase;
+  static Map<String, dynamic>? _errorCodes;
   static List<ConversationContext> _conversationHistory = [];
   static ConversationContext? _currentContext;
   static Queue<String> _recentTopics = Queue<String>();
   static Map<String, int> _topicFrequency = {};
+  static Map<String, dynamic> _conversationMemory = {};
+  static List<String> _detectedErrorCodes = [];
+  static String _currentIntent = 'general_inquiry';
+  static String _detectedLanguage = 'en';
 
   static Future<void> loadKnowledgeBase() async {
     try {
       String jsonString = await rootBundle.loadString('assets/knowledge_base.json');
       _knowledgeBase = json.decode(jsonString);
+
+      // Load error codes database
+      String errorCodesString = await rootBundle.loadString('assets/error_codes.json');
+      _errorCodes = json.decode(errorCodesString);
+
       await _loadConversationHistory();
     } catch (e) {
       print('Error loading knowledge base: $e');
       _knowledgeBase = null;
+      _errorCodes = null;
     }
   }
 
@@ -614,9 +625,9 @@ class KnowledgeBaseService {
       return searchResponse;
     }
 
-    // Check for conversation continuation
+    // Check for conversation continuation with memory
     if (_isFollowUpQuestion(message)) {
-      return _handleFollowUp(message, language);
+      return _handleFollowUpWithMemory(message, language);
     }
 
     // Enhanced greeting with context - only if no specific query found
@@ -627,6 +638,12 @@ class KnowledgeBaseService {
     // Check for help requests
     if (message.contains('help') || message.contains('what can you do')) {
       return _getHelpResponse(language);
+    }
+
+  // ERROR CODE DETECTION - Check for error codes first
+    List<String> detectedCodes = detectErrorCodes(message);
+    if (detectedCodes.isNotEmpty) {
+      return _handleErrorCodeQuery(detectedCodes, message, language);
     }
 
     // TROUBLESHOOTING QUERIES - Check for problems first
@@ -718,6 +735,58 @@ class KnowledgeBaseService {
     }
 
     return _getLocalizedResponse("Based on our conversation, I can provide more specific information. Could you clarify what additional details you need?", language);
+  }
+
+  static String _handleFollowUpWithMemory(String message, String language) {
+    // Enhanced follow-up handling with conversation memory
+    String lowerMessage = message.toLowerCase();
+
+    // Check recent conversation history for context
+    if (_conversationHistory.isNotEmpty) {
+      // Get the last few conversations for context
+      int historyCount = _conversationHistory.length > 3 ? 3 : _conversationHistory.length;
+      List<ConversationContext> recentHistory = _conversationHistory.sublist(_conversationHistory.length - historyCount);
+
+      // Analyze what was discussed recently
+      Set<String> recentTopics = {};
+      for (var context in recentHistory) {
+        List<String> topics = context.contextData['topics'] ?? [];
+        recentTopics.addAll(topics);
+      }
+
+      // Handle specific follow-up patterns
+      if (lowerMessage.contains('more') || lowerMessage.contains('tell me more') || lowerMessage.contains('details')) {
+        // User wants more information about recent topics
+        if (recentTopics.contains('generator')) {
+          return _getLocalizedResponse("I'd be happy to provide more details about our generators. What specific aspect would you like to know more about - specifications, pricing, installation, or maintenance?", language);
+        } else if (recentTopics.contains('ats')) {
+          return _getLocalizedResponse("I can give you more information about our ATS systems. Are you interested in technical specifications, installation procedures, or pricing?", language);
+        } else if (recentTopics.contains('power_bank')) {
+          return _getLocalizedResponse("Our power bank systems offer excellent energy storage solutions. Would you like to know about battery options, solar integration, or pricing?", language);
+        }
+      }
+
+      if (lowerMessage.contains('what about') || lowerMessage.contains('how about')) {
+        // User is asking about alternatives or related topics
+        if (recentTopics.contains('15kva') && lowerMessage.contains('30kva')) {
+          return _getDetailedProductInfo('30kVA', language);
+        } else if (recentTopics.contains('30kva') && lowerMessage.contains('15kva')) {
+          return _getDetailedProductInfo('15kVA', language);
+        }
+      }
+
+      if (lowerMessage.contains('also') || lowerMessage.contains('and')) {
+        // User wants additional information
+        if (recentTopics.contains('generator') && !recentTopics.contains('ats')) {
+          return _getLocalizedResponse("In addition to generators, we also offer Automatic Transfer Switches (ATS) for seamless power switching. Would you like to know more about ATS systems?", language);
+        } else if (recentTopics.contains('ats') && !recentTopics.contains('power_bank')) {
+          return _getLocalizedResponse("Besides ATS systems, we have power bank solutions for energy storage. Are you interested in learning about our battery backup systems?", language);
+        }
+      }
+    }
+
+    // Fallback to regular follow-up handling
+    return _handleFollowUp(message, language);
   }
 
   static String _getContextualGreeting(String language) {
@@ -1320,259 +1389,406 @@ class KnowledgeBaseService {
     StringBuffer troubleshooting = StringBuffer();
 
     if (language == 'ms') {
-      troubleshooting.writeln("🔧 PENYELESAIAN MASALAH");
+      troubleshooting.writeln("🔧 PENYELESAIAN MASALAH - PANDUAN TEKNIKAL");
+      troubleshooting.writeln("");
+      troubleshooting.writeln("👨‍🔧 Sebagai juruteknik berpengalaman, saya akan bantu anda menyelesaikan masalah generator ini secara sistematik. Jangan risau, kebanyakan masalah boleh diselesaikan dengan langkah-langkah asas.");
       troubleshooting.writeln("");
 
       if (message.contains('start') || message.contains('won\'t start') || message.contains('engine')) {
-        troubleshooting.writeln("Jika generator anda tidak dapat dihidupkan:");
-        troubleshooting.writeln("1) Periksa tahap bahan api dan penapis bahan api");
-        troubleshooting.writeln("2) Pastikan bateri dicas dan terminal diketatkan");
-        troubleshooting.writeln("3) Lihat panel kawalan untuk sebarang amaran");
-        troubleshooting.writeln("4) Sahkan pemutus beban dimatikan semasa penghidupan");
-        troubleshooting.writeln("5) Periksa suis kecemasan (jika ada)");
-        troubleshooting.writeln("6) Cuba hidupkan secara manual untuk menguji");
+        troubleshooting.writeln("🚫 GENERATOR TIDAK BOLEH HIDUP");
         troubleshooting.writeln("");
-        troubleshooting.writeln("Langkah tambahan:");
-        troubleshooting.writeln("• Bersihkan terminal bateri jika berkarat");
-        troubleshooting.writeln("• Periksa sambungan wayar untuk kelonggaran");
-        troubleshooting.writeln("• Pastikan bahan api tidak tercemar air");
+        troubleshooting.writeln("Ini masalah biasa yang saya jumpa setiap hari. Mari kita semak secara sistematik:");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔍 SEMAKAN ASAS (Ambil masa 5 minit):");
+        troubleshooting.writeln("1) 📊 Periksa paras bahan api - Pastikan tangki penuh dengan diesel berkualiti");
+        troubleshooting.writeln("2) 🔋 Bateri - Pastikan dicas sepenuhnya (12.6V+) dan terminal tidak berkarat");
+        troubleshooting.writeln("3) 🛑 Pemutus beban - Pastikan SEMUA suis dimatikan sebelum hidupkan");
+        troubleshooting.writeln("4) 🚨 Panel kawalan - Lihat untuk kod ralat atau lampu amaran merah");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔧 LANGKAH TEKNIKAL LANJUT:");
+        troubleshooting.writeln("• Bersihkan terminal bateri dengan berus dawai jika berkarat");
+        troubleshooting.writeln("• Periksa wayar bateri untuk kerosakan atau sambungan longgar");
+        troubleshooting.writeln("• Cuba hidupkan secara manual (bukan auto) untuk ujian");
+        troubleshooting.writeln("• Dengar bunyi 'klik' dari starter - jika tiada, bateri lemah");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("💡 TIP JURUTEKNIK: Jika bateri baik tapi masih tidak hidup, mungkin masalah starter atau alternator. Jangan cuba buka enjin sendiri - hubungi servis rasmi.");
       } else if (message.contains('power') || message.contains('output') || message.contains('electricity')) {
-        troubleshooting.writeln("Jika tiada output kuasa:");
-        troubleshooting.writeln("1) Periksa sambungan output dan pemutus litar");
-        troubleshooting.writeln("2) Sahkan beban tidak melebihi kapasiti generator");
-        troubleshooting.writeln("3) Periksa voltan output pada panel kawalan");
-        troubleshooting.writeln("4) Pastikan suis pemindahan (ATS) berfungsi dengan betul");
-        troubleshooting.writeln("5) Uji setiap fasa output satu per satu");
+        troubleshooting.writeln("⚡ TIADA OUTPUT KUASA");
         troubleshooting.writeln("");
-        troubleshooting.writeln("Langkah tambahan:");
-        troubleshooting.writeln("• Periksa beban untuk litar pintas");
-        troubleshooting.writeln("• Sahkan voltan input yang stabil");
-        troubleshooting.writeln("• Cuba sambung beban kecil untuk ujian");
+        troubleshooting.writeln("Masalah output kuasa adalah kritikal. Mari kita semak dengan teliti:");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔍 SEMAKAN ELEKTRIK (Ambil masa 10 minit):");
+        troubleshooting.writeln("1) 🔌 Sambungan output - Pastikan semua plag dan soket kemas");
+        troubleshooting.writeln("2) ⚡ Voltan output - Semak pada meter panel kawalan (harus 400V untuk 3 fasa)");
+        troubleshooting.writeln("3) 🔄 ATS - Jika ada, pastikan suis pemindahan berfungsi dengan betul");
+        troubleshooting.writeln("4) 🏗️ Beban - Pastikan tidak melebihi 80% kapasiti generator");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔧 DIAGNOSTIK LANJUT:");
+        troubleshooting.writeln("• Uji setiap fasa satu persatu dengan multimeter");
+        troubleshooting.writeln("• Semak AVR (Automatic Voltage Regulator) untuk kerosakan");
+        troubleshooting.writeln("• Periksa stator dan rotor alternator untuk masalah mekanikal");
+        troubleshooting.writeln("• Cuba sambung beban kecil (lampu) untuk ujian asas");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("💡 TIP JURUTEKNIK: Jika voltan tidak stabil, kemungkinan masalah AVR atau eksitasi. Ini memerlukan alat khas untuk baiki.");
       } else if (message.contains('noise') || message.contains('loud') || message.contains('sound')) {
-        troubleshooting.writeln("Jika generator terlalu bising:");
-        troubleshooting.writeln("1) Pastikan generator dipasang pada permukaan yang rata");
-        troubleshooting.writeln("2) Periksa dan ketatkan semua bolt dan nat");
-        troubleshooting.writeln("3) Sahkan kanopi dan panel dalam keadaan baik");
-        troubleshooting.writeln("4) Pertimbangkan penebat bunyi tambahan jika diperlukan");
-        troubleshooting.writeln("5) Periksa mounting pad getah untuk kerosakan");
+        troubleshooting.writeln("🔊 GENERATOR TERLALU BISING");
         troubleshooting.writeln("");
-        troubleshooting.writeln("Langkah tambahan:");
-        troubleshooting.writeln("• Pasang pada permukaan konkrit yang tebal");
-        troubleshooting.writeln("• Gunakan bahan penebat bunyi di sekitar");
-        troubleshooting.writeln("• Jauhkan dari dinding dan halangan");
+        troubleshooting.writeln("Bunyi bising generator boleh jadi tanda masalah mekanikal. Mari kita semak:");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔍 SEMAKAN MEKANIKAL (Ambil masa 15 minit):");
+        troubleshooting.writeln("1) 🏗️ Asas pemasangan - Pastikan rata dan stabil, bukan condong");
+        troubleshooting.writeln("2) 🔩 Bolt & nut - Semua harus ketat, terutama mounting enjin");
+        troubleshooting.writeln("3) 🛡️ Kanopi - Periksa untuk retak atau panel longgar");
+        troubleshooting.writeln("4) 🟫 Mounting pad - Getah penebat bunyi tidak pecah atau haus");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔧 PENYELESAIAN BUNYI:");
+        troubleshooting.writeln("• Pasang pada concrete slab tebal minimum 150mm");
+        troubleshooting.writeln("• Gunakan spring isolators untuk getaran");
+        troubleshooting.writeln("• Tambah acoustic enclosure jika perlu");
+        troubleshooting.writeln("• Jauhkan dari dinding untuk echo");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("💡 TIP JURUTEKNIK: Bunyi 'ketak ketak' bermakna bearing rosak. Bunyi 'peluit' bermakna tali kipas longgar. Dengar dengan teliti!");
       } else if (message.contains('fuel') || message.contains('consumption') || message.contains('leak')) {
-        troubleshooting.writeln("Jika masalah bahan api:");
-        troubleshooting.writeln("1) Periksa untuk kebocoran bahan api");
-        troubleshooting.writeln("2) Sahkan penapis bahan api bersih");
-        troubleshooting.writeln("3) Pastikan bahan api segar dan berkualiti");
-        troubleshooting.writeln("4) Periksa sistem suntikan bahan api");
-        troubleshooting.writeln("5) Bersihkan tangki bahan api jika berkarat");
+        troubleshooting.writeln("⛽ MASALAH BAHAN API");
         troubleshooting.writeln("");
-        troubleshooting.writeln("Langkah tambahan:");
-        troubleshooting.writeln("• Ganti penapis bahan api setiap 400 jam");
-        troubleshooting.writeln("• Gunakan bahan api dari sumber yang dipercayai");
-        troubleshooting.writeln("• Simpan bahan api dalam bekas yang bersih");
+        troubleshooting.writeln("Masalah bahan api adalah punca utama kerosakan enjin. Mari kita semak:");
         troubleshooting.writeln("");
-        troubleshooting.writeln("⚠️ JANGAN merokok atau menggunakan api terbuka berhampiran bahan api.");
+        troubleshooting.writeln("🔍 SEMAKAN BAHAN API (Ambil masa 10 minit):");
+        troubleshooting.writeln("1) 💧 Paras air - Kosongkan air dari tangki bahan api");
+        troubleshooting.writeln("2) 🔎 Penapis bahan api - Bersihkan atau ganti jika tersumbat");
+        troubleshooting.writeln("3) ⛽ Kualiti diesel - Pastikan diesel segar, bukan basi");
+        troubleshooting.writeln("4) 🔧 Sistem suntikan - Periksa untuk kebocoran atau penyumbatan");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔧 PENYELESAIAN TEKNIKAL:");
+        troubleshooting.writeln("• Ganti penapis bahan api setiap 400 jam operasi");
+        troubleshooting.writeln("• Gunakan bahan api dengan cetane number tinggi");
+        troubleshooting.writeln("• Bersihkan tangki bahan api dari sedimen");
+        troubleshooting.writeln("• Semak fuel pump untuk tekanan yang betul");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("⚠️ AMARAN KESELAMATAN: JANGAN merokok atau gunakan api terbuka berhampiran bahan api. Risiko kebakaran tinggi!");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("💡 TIP JURUTEKNIK: Jika penggunaan bahan api tinggi tiba-tiba, mungkin masalah injector atau timing enjin. Perlu servis enjin profesional.");
       } else if (message.contains('maintenance') || message.contains('service') || message.contains('check')) {
-        troubleshooting.writeln("Untuk penyelenggaraan rutin:");
-        troubleshooting.writeln("1) Periksa tahap minyak enjin setiap 50 jam operasi");
-        troubleshooting.writeln("2) Ganti penapis udara setiap 200 jam");
-        troubleshooting.writeln("3) Ganti penapis bahan api setiap 400 jam");
-        troubleshooting.writeln("4) Servis sistem penyejukan setiap 6 bulan");
-        troubleshooting.writeln("5) Periksa bateri dan sambungan elektrik");
-        troubleshooting.writeln("6) Bersihkan radiator dari habuk dan serpihan");
+        troubleshooting.writeln("🔧 PENYELENGGARAAN RUTIN GENERATOR");
         troubleshooting.writeln("");
-        troubleshooting.writeln("Langkah tambahan:");
-        troubleshooting.writeln("• Lumur bahagian bergerak dengan gris");
-        troubleshooting.writeln("• Periksa tali sawat untuk ketegangan");
-        troubleshooting.writeln("• Bersihkan sistem ekzos dari karbon");
+        troubleshooting.writeln("Penyelenggaraan yang baik adalah kunci kepada hayat panjang generator. Sebagai juruteknik, saya cadangkan:");
         troubleshooting.writeln("");
-        troubleshooting.writeln("Rujuk manual pengguna untuk jadual penyelenggaraan lengkap.");
+        troubleshooting.writeln("📅 JADUAL PENYELENGGARAAN HARIAN:");
+        troubleshooting.writeln("• Semak paras minyak enjin dan radiator");
+        troubleshooting.writeln("• Periksa untuk kebocoran bahan api atau minyak");
+        troubleshooting.writeln("• Dengar bunyi tidak normal semasa operasi");
+        troubleshooting.writeln("• Semak voltan dan frekuensi output");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("📅 PENYELENGGARAAN MINGGUAN:");
+        troubleshooting.writeln("• Bersihkan penapis udara dari habuk");
+        troubleshooting.writeln("• Semak paras air bateri");
+        troubleshooting.writeln("• Periksa tali kipas untuk ketegangan");
+        troubleshooting.writeln("• Bersihkan radiator dari serangga");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("📅 PENYELENGGARAAN BULANAN:");
+        troubleshooting.writeln("• Ganti minyak enjin (setiap 50 jam)");
+        troubleshooting.writeln("• Bersihkan sistem penyejukan");
+        troubleshooting.writeln("• Semak sambungan elektrik");
+        troubleshooting.writeln("• Uji fungsi auto-start jika ada");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("💡 TIP JURUTEKNIK: Saya cadangkan servis profesional setiap 6 bulan atau 500 jam operasi. Lebih murah baiki daripada ganti enjin baru!");
       } else {
-        troubleshooting.writeln("Untuk masalah umum generator:");
-        troubleshooting.writeln("1) Periksa tahap bahan api dan bateri");
-        troubleshooting.writeln("2) Pastikan bateri dicas dan terminal bersih");
-        troubleshooting.writeln("3) Lihat panel kawalan untuk kod kesalahan");
-        troubleshooting.writeln("4) Sahkan semua suis dalam kedudukan yang betul");
-        troubleshooting.writeln("5) Periksa sambungan elektrik untuk kelonggaran");
-        troubleshooting.writeln("6) Dengar bunyi tidak normal semasa operasi");
+        troubleshooting.writeln("🔧 MASALAH GENERATOR UMUM");
         troubleshooting.writeln("");
-        troubleshooting.writeln("Langkah tambahan:");
-        troubleshooting.writeln("• Periksa lampu amaran pada panel");
-        troubleshooting.writeln("• Sahkan suhu operasi normal");
-        troubleshooting.writeln("• Cuba operasi dengan beban berbeza");
+        troubleshooting.writeln("Berdasarkan pengalaman saya sebagai juruteknik, berikut adalah masalah paling biasa:");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔍 SEMAKAN ASAS YANG SERING TERLEPAS PANDANG:");
+        troubleshooting.writeln("1) 🔋 Bateri - Punca utama masalah 'tidak hidup'");
+        troubleshooting.writeln("2) ⛽ Bahan api - Pastikan bersih dan berkualiti");
+        troubleshooting.writeln("3) 🔌 Sambungan - Semua wayar dan plag harus kemas");
+        troubleshooting.writeln("4) 🏗️ Beban - Jangan overload generator");
+        troubleshooting.writeln("5) 🌡️ Suhu - Pastikan sistem penyejukan berfungsi");
+        troubleshooting.writeln("6) 🔊 Bunyi - Dengar untuk masalah mekanikal");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔧 ALAT YANG ANDA PERLU:");
+        troubleshooting.writeln("• Multimeter digital untuk ujian elektrik");
+        troubleshooting.writeln("• Pressure gauge untuk sistem bahan api");
+        troubleshooting.writeln("• Tachometer untuk semak RPM enjin");
+        troubleshooting.writeln("• Test lamp untuk ujian litar");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("💡 TIP JURUTEKNIK: 80% masalah generator boleh diselesaikan dengan semakan asas. Jika masih tidak berfungsi, masa untuk hubungi servis profesional.");
       }
+
+      troubleshooting.writeln("");
+      troubleshooting.writeln("🤝 Saya faham ini menjengkelkan, tapi jangan risau. Jika masalah masih berterusan, saya cadangkan:");
+      troubleshooting.writeln("📞 Hubungi teknikal kami: +60 12-968 9816");
+      troubleshooting.writeln("📧 Email: technical@genset.com.my");
+      troubleshooting.writeln("🏢 Servis di lokasi anda tersedia");
+      troubleshooting.writeln("");
+      troubleshooting.writeln("⚡ Kami ada stok spare parts lengkap dan juruteknik bertauliah. Boleh selesai dalam sehari untuk masalah biasa!");
 
     } else if (language == 'zh') {
-      troubleshooting.writeln("🔧 故障排除");
+      troubleshooting.writeln("🔧 故障排除 - 技术指导");
+      troubleshooting.writeln("");
+      troubleshooting.writeln("👨‍🔧 作为经验丰富的技师，我会系统性地帮您解决发电机问题。别担心，大多数问题都可以通过基本步骤解决。");
       troubleshooting.writeln("");
 
       if (message.contains('start') || message.contains('won\'t start') || message.contains('engine')) {
-        troubleshooting.writeln("如果发电机无法启动：");
-        troubleshooting.writeln("1) 检查燃油液位和燃油滤清器");
-        troubleshooting.writeln("2) 确保电池充电良好，接线端子紧固");
-        troubleshooting.writeln("3) 查看控制面板是否有警报");
-        troubleshooting.writeln("4) 确认启动时负载断路器关闭");
-        troubleshooting.writeln("5) 检查紧急停止开关（如有）");
-        troubleshooting.writeln("6) 尝试手动启动进行测试");
+        troubleshooting.writeln("🚫 发电机无法启动");
         troubleshooting.writeln("");
-        troubleshooting.writeln("其他步骤：");
-        troubleshooting.writeln("• 如果端子生锈，请清洁电池端子");
-        troubleshooting.writeln("• 检查电线连接是否有松动");
-        troubleshooting.writeln("• 确保燃油没有水污染");
+        troubleshooting.writeln("这是我每天都会遇到的常见问题。让我们系统地检查：");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔍 基本检查（需要5分钟）：");
+        troubleshooting.writeln("1) 📊 燃油液位 - 确保油箱充满优质柴油");
+        troubleshooting.writeln("2) 🔋 电池 - 确保完全充电（12.6V+）且端子无腐蚀");
+        troubleshooting.writeln("3) 🛑 负载断路器 - 启动前确保所有开关都关闭");
+        troubleshooting.writeln("4) 🚨 控制面板 - 查看是否有错误代码或红色警告灯");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔧 高级技术步骤：");
+        troubleshooting.writeln("• 如果端子腐蚀，用钢丝刷清洁电池端子");
+        troubleshooting.writeln("• 检查电池线缆是否有损坏或松动连接");
+        troubleshooting.writeln("• 尝试手动启动（非自动）进行测试");
+        troubleshooting.writeln("• 倾听启动器的'咔嗒'声 - 如果没有，电池电量不足");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("💡 技师提示：如果电池良好但仍无法启动，可能是启动器或交流发电机问题。不要自己打开发动机 - 联系官方服务。");
       } else if (message.contains('power') || message.contains('output') || message.contains('electricity')) {
-        troubleshooting.writeln("如果没有电力输出：");
-        troubleshooting.writeln("1) 检查输出连接和断路器");
-        troubleshooting.writeln("2) 确认负载不超过发电机容量");
-        troubleshooting.writeln("3) 在控制面板检查输出电压");
-        troubleshooting.writeln("4) 确保转换开关（ATS）正常工作");
-        troubleshooting.writeln("5) 逐一测试每个输出相位");
+        troubleshooting.writeln("⚡ 无电力输出");
         troubleshooting.writeln("");
-        troubleshooting.writeln("其他步骤：");
-        troubleshooting.writeln("• 检查负载是否有短路");
-        troubleshooting.writeln("• 确认输入电压稳定");
-        troubleshooting.writeln("• 尝试连接小负载进行测试");
+        troubleshooting.writeln("电力输出问题是关键问题。让我们仔细检查：");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔍 电气检查（需要10分钟）：");
+        troubleshooting.writeln("1) 🔌 输出连接 - 确保所有插头和插座牢固");
+        troubleshooting.writeln("2) ⚡ 输出电压 - 在控制面板上用仪表检查（3相应为400V）");
+        troubleshooting.writeln("3) 🔄 ATS - 如果有，确保转换开关正常工作");
+        troubleshooting.writeln("4) 🏗️ 负载 - 确保不超过发电机容量的80%");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔧 高级诊断：");
+        troubleshooting.writeln("• 用万用表逐一测试每个相位");
+        troubleshooting.writeln("• 检查AVR（自动电压调节器）是否有损坏");
+        troubleshooting.writeln("• 检查定子和转子是否有机械问题");
+        troubleshooting.writeln("• 尝试连接小负载（灯泡）进行基本测试");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("💡 技师提示：如果电压不稳定，可能是AVR或励磁问题。这需要专用工具来修复。");
       } else if (message.contains('noise') || message.contains('loud') || message.contains('sound')) {
-        troubleshooting.writeln("如果发电机噪音过大：");
-        troubleshooting.writeln("1) 确保发电机安装在平坦表面上");
-        troubleshooting.writeln("2) 检查并紧固所有螺栓和螺母");
-        troubleshooting.writeln("3) 确认外罩和面板状况良好");
-        troubleshooting.writeln("4) 如有需要，考虑额外的隔音措施");
-        troubleshooting.writeln("5) 检查橡胶安装垫是否有损坏");
+        troubleshooting.writeln("🔊 发电机噪音过大");
         troubleshooting.writeln("");
-        troubleshooting.writeln("其他步骤：");
-        troubleshooting.writeln("• 安装在厚混凝土表面上");
-        troubleshooting.writeln("• 在周围使用隔音材料");
-        troubleshooting.writeln("• 远离墙壁和障碍物");
+        troubleshooting.writeln("发电机噪音大可能是机械问题的迹象。让我们检查：");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔍 机械检查（需要15分钟）：");
+        troubleshooting.writeln("1) 🏗️ 安装基础 - 确保平坦稳定，不要倾斜");
+        troubleshooting.writeln("2) 🔩 螺栓和螺母 - 所有都应紧固，特别是发动机安装");
+        troubleshooting.writeln("3) 🛡️ 外罩 - 检查是否有裂缝或松动的面板");
+        troubleshooting.writeln("4) 🟫 安装垫 - 橡胶隔音垫没有破损或磨损");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔧 噪音解决方案：");
+        troubleshooting.writeln("• 安装在至少150mm厚的混凝土板上");
+        troubleshooting.writeln("• 使用弹簧隔振器减少振动");
+        troubleshooting.writeln("• 如需要，添加声学外罩");
+        troubleshooting.writeln("• 远离墙壁以减少回声");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("💡 技师提示：'咔哒咔哒'声表示轴承损坏。'哨声'表示风扇皮带松弛。仔细倾听！");
       } else if (message.contains('fuel') || message.contains('consumption') || message.contains('leak')) {
-        troubleshooting.writeln("如果有燃油问题：");
-        troubleshooting.writeln("1) 检查燃油泄漏");
-        troubleshooting.writeln("2) 确认燃油滤清器清洁");
-        troubleshooting.writeln("3) 确保燃油新鲜且质量良好");
-        troubleshooting.writeln("4) 检查燃油喷射系统");
-        troubleshooting.writeln("5) 如果生锈，请清洁燃油箱");
+        troubleshooting.writeln("⛽ 燃油问题");
         troubleshooting.writeln("");
-        troubleshooting.writeln("其他步骤：");
-        troubleshooting.writeln("• 每400小时更换燃油滤清器");
-        troubleshooting.writeln("• 使用可靠来源的燃油");
-        troubleshooting.writeln("• 在清洁容器中储存燃油");
+        troubleshooting.writeln("燃油问题是发动机损坏的主要原因。让我们检查：");
         troubleshooting.writeln("");
-        troubleshooting.writeln("⚠️ 请勿在燃油附近吸烟或使用明火。");
+        troubleshooting.writeln("🔍 燃油检查（需要10分钟）：");
+        troubleshooting.writeln("1) 💧 水位 - 从燃油箱中排出水");
+        troubleshooting.writeln("2) 🔎 燃油滤清器 - 如果堵塞，清洁或更换");
+        troubleshooting.writeln("3) ⛽ 柴油质量 - 确保柴油新鲜，不是变质的");
+        troubleshooting.writeln("4) 🔧 喷射系统 - 检查是否有泄漏或堵塞");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔧 技术解决方案：");
+        troubleshooting.writeln("• 每400小时运行更换燃油滤清器");
+        troubleshooting.writeln("• 使用高十六烷值燃油");
+        troubleshooting.writeln("• 从燃油箱中清除沉淀物");
+        troubleshooting.writeln("• 检查燃油泵压力是否正确");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("⚠️ 安全警告：不要在燃油附近吸烟或使用明火。火灾风险很高！");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("💡 技师提示：如果燃油消耗突然增加，可能是喷油器或发动机正时问题。需要专业发动机服务。");
       } else if (message.contains('maintenance') || message.contains('service') || message.contains('check')) {
-        troubleshooting.writeln("常规维护：");
-        troubleshooting.writeln("1) 每50小时运行检查发动机油位");
-        troubleshooting.writeln("2) 每200小时更换空气滤清器");
-        troubleshooting.writeln("3) 每400小时更换燃油滤清器");
-        troubleshooting.writeln("4) 每6个月维护冷却系统");
-        troubleshooting.writeln("5) 检查电池和电气连接");
-        troubleshooting.writeln("6) 清洁散热器，除去灰尘和碎片");
+        troubleshooting.writeln("🔧 发电机日常维护");
         troubleshooting.writeln("");
-        troubleshooting.writeln("其他步骤：");
-        troubleshooting.writeln("• 用润滑脂润滑运动部件");
-        troubleshooting.writeln("• 检查皮带张紧度");
-        troubleshooting.writeln("• 清洁排气系统，除去碳沉积");
+        troubleshooting.writeln("良好的维护是延长发电机寿命的关键。作为技师，我建议：");
         troubleshooting.writeln("");
-        troubleshooting.writeln("请参阅用户手册以获取完整的维护时间表。");
+        troubleshooting.writeln("📅 日常维护：");
+        troubleshooting.writeln("• 检查发动机油位和散热器液位");
+        troubleshooting.writeln("• 检查燃油或机油泄漏");
+        troubleshooting.writeln("• 倾听运行时的异常声音");
+        troubleshooting.writeln("• 检查输出电压和频率");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("📅 每周维护：");
+        troubleshooting.writeln("• 从空气滤清器清除灰尘");
+        troubleshooting.writeln("• 检查电池液位");
+        troubleshooting.writeln("• 检查风扇皮带张力");
+        troubleshooting.writeln("• 从散热器清除昆虫");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("📅 每月维护：");
+        troubleshooting.writeln("• 更换发动机油（每50小时）");
+        troubleshooting.writeln("• 清洁冷却系统");
+        troubleshooting.writeln("• 检查电气连接");
+        troubleshooting.writeln("• 如果有，测试自动启动功能");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("💡 技师提示：我建议每6个月或500小时运行进行专业服务。维修比更换新发动机更便宜！");
       } else {
-        troubleshooting.writeln("一般发电机问题：");
-        troubleshooting.writeln("1) 检查燃油液位和电池");
-        troubleshooting.writeln("2) 确保电池充电良好，接线端子清洁");
-        troubleshooting.writeln("3) 查看控制面板的故障代码");
-        troubleshooting.writeln("4) 确认所有开关处于正确位置");
-        troubleshooting.writeln("5) 检查电气连接是否有松动");
-        troubleshooting.writeln("6) 倾听运行时的异常声音");
+        troubleshooting.writeln("🔧 一般发电机问题");
         troubleshooting.writeln("");
-        troubleshooting.writeln("其他步骤：");
-        troubleshooting.writeln("• 检查面板上的警告灯");
-        troubleshooting.writeln("• 确认运行温度正常");
-        troubleshooting.writeln("• 用不同负载测试运行");
+        troubleshooting.writeln("根据我作为技师的经验，以下是最常见的问题：");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔍 经常被忽视的基本检查：");
+        troubleshooting.writeln("1) 🔋 电池 - '无法启动'问题的首要原因");
+        troubleshooting.writeln("2) ⛽ 燃油 - 确保清洁和优质");
+        troubleshooting.writeln("3) 🔌 连接 - 所有电线和插头应牢固");
+        troubleshooting.writeln("4) 🏗️ 负载 - 不要超载发电机");
+        troubleshooting.writeln("5) 🌡️ 温度 - 确保冷却系统正常工作");
+        troubleshooting.writeln("6) 🔊 声音 - 倾听机械问题");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔧 您需要的工具：");
+        troubleshooting.writeln("• 数字万用表用于电气测试");
+        troubleshooting.writeln("• 压力表用于燃油系统");
+        troubleshooting.writeln("• 转速表用于检查发动机RPM");
+        troubleshooting.writeln("• 测试灯用于电路测试");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("💡 技师提示：80%的发电机问题可以通过基本检查解决。如果仍有问题，该联系专业服务了。");
       }
+
+      troubleshooting.writeln("");
+      troubleshooting.writeln("🤝 我理解这很令人沮丧，但别担心。如果问题仍然存在，我建议：");
+      troubleshooting.writeln("📞 联系我们的技术人员：+60 12-968 9816");
+      troubleshooting.writeln("📧 邮箱：technical@genset.com.my");
+      troubleshooting.writeln("🏢 可提供上门服务");
+      troubleshooting.writeln("");
+      troubleshooting.writeln("⚡ 我们有完整的备件库存和认证技师。对于常见问题，可在一天内完成！");
 
     } else {
-      troubleshooting.writeln("🔧 TROUBLESHOOTING GUIDE");
+      troubleshooting.writeln("🔧 TROUBLESHOOTING GUIDE - TECHNICAL ASSISTANCE");
+      troubleshooting.writeln("");
+      troubleshooting.writeln("👨‍🔧 As an experienced technician, I'll help you systematically resolve this generator issue. Don't worry, most problems can be solved with basic steps.");
       troubleshooting.writeln("");
 
       if (message.contains('start') || message.contains('won\'t start') || message.contains('engine')) {
-        troubleshooting.writeln("If your genset won't start:");
-        troubleshooting.writeln("1) Check fuel level and filters");
-        troubleshooting.writeln("2) Ensure the battery is charged and terminals are tight");
-        troubleshooting.writeln("3) Look at control panel alarms");
-        troubleshooting.writeln("4) Confirm load breakers are off during startup");
-        troubleshooting.writeln("5) Check emergency stop switch if present");
-        troubleshooting.writeln("6) Try manual start to test");
+        troubleshooting.writeln("🚫 GENERATOR WON'T START");
         troubleshooting.writeln("");
-        troubleshooting.writeln("Additional steps:");
-        troubleshooting.writeln("• Clean battery terminals if corroded");
-        troubleshooting.writeln("• Check wire connections for looseness");
-        troubleshooting.writeln("• Ensure fuel is not contaminated with water");
+        troubleshooting.writeln("This is a common problem I encounter every day. Let's check systematically:");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔍 BASIC CHECKS (Takes 5 minutes):");
+        troubleshooting.writeln("1) 📊 Fuel level - Ensure tank is full with quality diesel");
+        troubleshooting.writeln("2) 🔋 Battery - Ensure fully charged (12.6V+) and terminals corrosion-free");
+        troubleshooting.writeln("3) 🛑 Load breakers - Ensure ALL switches are OFF before starting");
+        troubleshooting.writeln("4) 🚨 Control panel - Look for error codes or red warning lights");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔧 ADVANCED TECHNICAL STEPS:");
+        troubleshooting.writeln("• Clean battery terminals with wire brush if corroded");
+        troubleshooting.writeln("• Check battery cables for damage or loose connections");
+        troubleshooting.writeln("• Try manual start (not auto) for testing");
+        troubleshooting.writeln("• Listen for 'click' from starter - if none, battery is weak");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("💡 TECHNICIAN TIP: If battery is good but still won't start, likely starter or alternator issue. Don't try to open engine yourself - contact authorized service.");
       } else if (message.contains('power') || message.contains('output') || message.contains('electricity')) {
-        troubleshooting.writeln("If no power output:");
-        troubleshooting.writeln("1) Check output connections and circuit breakers");
-        troubleshooting.writeln("2) Verify load doesn't exceed generator capacity");
-        troubleshooting.writeln("3) Check output voltage on control panel");
-        troubleshooting.writeln("4) Ensure transfer switch (ATS) is functioning properly");
-        troubleshooting.writeln("5) Test each output phase individually");
+        troubleshooting.writeln("⚡ NO POWER OUTPUT");
         troubleshooting.writeln("");
-        troubleshooting.writeln("Additional steps:");
-        troubleshooting.writeln("• Check load for short circuits");
-        troubleshooting.writeln("• Verify stable input voltage");
-        troubleshooting.writeln("• Try connecting small load for testing");
+        troubleshooting.writeln("Power output issues are critical. Let's check carefully:");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔍 ELECTRICAL CHECKS (Takes 10 minutes):");
+        troubleshooting.writeln("1) 🔌 Output connections - Ensure all plugs and sockets are secure");
+        troubleshooting.writeln("2) ⚡ Output voltage - Check on control panel meter (should be 400V for 3-phase)");
+        troubleshooting.writeln("3) 🔄 ATS - If present, ensure transfer switch functions properly");
+        troubleshooting.writeln("4) 🏗️ Load - Ensure doesn't exceed 80% of generator capacity");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔧 ADVANCED DIAGNOSTICS:");
+        troubleshooting.writeln("• Test each phase individually with multimeter");
+        troubleshooting.writeln("• Check AVR (Automatic Voltage Regulator) for damage");
+        troubleshooting.writeln("• Inspect stator and rotor for mechanical issues");
+        troubleshooting.writeln("• Try connecting small load (light bulb) for basic test");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("💡 TECHNICIAN TIP: If voltage is unstable, likely AVR or excitation problem. Requires special tools to fix.");
       } else if (message.contains('noise') || message.contains('loud') || message.contains('sound')) {
-        troubleshooting.writeln("If generator is too noisy:");
-        troubleshooting.writeln("1) Ensure generator is installed on level surface");
-        troubleshooting.writeln("2) Check and tighten all bolts and nuts");
-        troubleshooting.writeln("3) Verify canopy and panels are in good condition");
-        troubleshooting.writeln("4) Consider additional sound insulation if needed");
-        troubleshooting.writeln("5) Check rubber mounting pads for damage");
+        troubleshooting.writeln("🔊 GENERATOR TOO NOISY");
         troubleshooting.writeln("");
-        troubleshooting.writeln("Additional steps:");
-        troubleshooting.writeln("• Install on thick concrete surface");
-        troubleshooting.writeln("• Use sound insulation materials around");
-        troubleshooting.writeln("• Keep away from walls and obstacles");
+        troubleshooting.writeln("Excessive generator noise can indicate mechanical problems. Let's check:");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔍 MECHANICAL CHECKS (Takes 15 minutes):");
+        troubleshooting.writeln("1) 🏗️ Installation base - Ensure level and stable, not tilted");
+        troubleshooting.writeln("2) 🔩 Bolts & nuts - All should be tight, especially engine mounts");
+        troubleshooting.writeln("3) 🛡️ Canopy - Check for cracks or loose panels");
+        troubleshooting.writeln("4) 🟫 Mounting pads - Rubber sound insulation not cracked or worn");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔧 NOISE SOLUTIONS:");
+        troubleshooting.writeln("• Install on thick concrete slab minimum 150mm");
+        troubleshooting.writeln("• Use spring isolators for vibration");
+        troubleshooting.writeln("• Add acoustic enclosure if needed");
+        troubleshooting.writeln("• Keep away from walls to reduce echo");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("💡 TECHNICIAN TIP: 'Rattling' sound means bearings damaged. 'Whistling' sound means fan belt loose. Listen carefully!");
       } else if (message.contains('fuel') || message.contains('consumption') || message.contains('leak')) {
-        troubleshooting.writeln("If fuel-related issues:");
-        troubleshooting.writeln("1) Check for fuel leaks");
-        troubleshooting.writeln("2) Verify fuel filter is clean");
-        troubleshooting.writeln("3) Ensure fuel is fresh and good quality");
-        troubleshooting.writeln("4) Check fuel injection system");
-        troubleshooting.writeln("5) Clean fuel tank if rusted");
+        troubleshooting.writeln("⛽ FUEL SYSTEM ISSUES");
         troubleshooting.writeln("");
-        troubleshooting.writeln("Additional steps:");
-        troubleshooting.writeln("• Replace fuel filter every 400 hours");
-        troubleshooting.writeln("• Use fuel from trusted sources");
-        troubleshooting.writeln("• Store fuel in clean containers");
+        troubleshooting.writeln("Fuel problems are the leading cause of engine damage. Let's check:");
         troubleshooting.writeln("");
-        troubleshooting.writeln("⚠️ DO NOT smoke or use open flames near fuel.");
+        troubleshooting.writeln("🔍 FUEL CHECKS (Takes 10 minutes):");
+        troubleshooting.writeln("1) 💧 Water level - Drain water from fuel tank");
+        troubleshooting.writeln("2) 🔎 Fuel filter - Clean or replace if clogged");
+        troubleshooting.writeln("3) ⛽ Diesel quality - Ensure fresh diesel, not degraded");
+        troubleshooting.writeln("4) 🔧 Injection system - Check for leaks or blockages");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔧 TECHNICAL SOLUTIONS:");
+        troubleshooting.writeln("• Replace fuel filter every 400 operating hours");
+        troubleshooting.writeln("• Use fuel with high cetane number");
+        troubleshooting.writeln("• Clean fuel tank from sediment");
+        troubleshooting.writeln("• Check fuel pump for correct pressure");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("⚠️ SAFETY WARNING: DO NOT smoke or use open flames near fuel. High fire risk!");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("💡 TECHNICIAN TIP: If fuel consumption suddenly increases, likely injector or engine timing issue. Requires professional engine service.");
       } else if (message.contains('maintenance') || message.contains('service') || message.contains('check')) {
-        troubleshooting.writeln("For routine maintenance:");
-        troubleshooting.writeln("1) Check engine oil level every 50 hours of operation");
-        troubleshooting.writeln("2) Replace air filter every 200 hours");
-        troubleshooting.writeln("3) Replace fuel filter every 400 hours");
-        troubleshooting.writeln("4) Service cooling system every 6 months");
-        troubleshooting.writeln("5) Check battery and electrical connections");
-        troubleshooting.writeln("6) Clean radiator from dust and debris");
+        troubleshooting.writeln("🔧 GENERATOR ROUTINE MAINTENANCE");
         troubleshooting.writeln("");
-        troubleshooting.writeln("Additional steps:");
-        troubleshooting.writeln("• Lubricate moving parts with grease");
-        troubleshooting.writeln("• Check belt tension");
-        troubleshooting.writeln("• Clean exhaust system from carbon buildup");
+        troubleshooting.writeln("Good maintenance is key to long generator life. As a technician, I recommend:");
         troubleshooting.writeln("");
-        troubleshooting.writeln("Refer to user manual for complete maintenance schedule.");
+        troubleshooting.writeln("📅 DAILY MAINTENANCE:");
+        troubleshooting.writeln("• Check engine oil and radiator levels");
+        troubleshooting.writeln("• Look for fuel or oil leaks");
+        troubleshooting.writeln("• Listen for abnormal sounds during operation");
+        troubleshooting.writeln("• Check output voltage and frequency");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("📅 WEEKLY MAINTENANCE:");
+        troubleshooting.writeln("• Clean air filter from dust");
+        troubleshooting.writeln("• Check battery water levels");
+        troubleshooting.writeln("• Inspect fan belt tension");
+        troubleshooting.writeln("• Clean radiator from insects");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("📅 MONTHLY MAINTENANCE:");
+        troubleshooting.writeln("• Change engine oil (every 50 hours)");
+        troubleshooting.writeln("• Clean cooling system");
+        troubleshooting.writeln("• Check electrical connections");
+        troubleshooting.writeln("• Test auto-start function if present");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("💡 TECHNICIAN TIP: I recommend professional service every 6 months or 500 operating hours. Much cheaper to fix than replace a new engine!");
       } else {
-        troubleshooting.writeln("For general genset problems:");
-        troubleshooting.writeln("1) Check fuel level and battery");
-        troubleshooting.writeln("2) Ensure battery is charged and terminals are clean");
-        troubleshooting.writeln("3) Look at control panel for error codes");
-        troubleshooting.writeln("4) Verify all switches are in correct position");
-        troubleshooting.writeln("5) Check electrical connections for looseness");
-        troubleshooting.writeln("6) Listen for abnormal sounds during operation");
+        troubleshooting.writeln("🔧 GENERAL GENERATOR PROBLEMS");
         troubleshooting.writeln("");
-        troubleshooting.writeln("Additional steps:");
-        troubleshooting.writeln("• Check warning lights on panel");
-        troubleshooting.writeln("• Verify normal operating temperature");
-        troubleshooting.writeln("• Test operation with different loads");
+        troubleshooting.writeln("Based on my experience as a technician, here are the most common issues:");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔍 BASIC CHECKS OFTEN OVERLOOKED:");
+        troubleshooting.writeln("1) 🔋 Battery - Primary cause of 'won't start' problems");
+        troubleshooting.writeln("2) ⛽ Fuel - Ensure clean and quality fuel");
+        troubleshooting.writeln("3) 🔌 Connections - All wires and plugs should be secure");
+        troubleshooting.writeln("4) 🏗️ Load - Don't overload the generator");
+        troubleshooting.writeln("5) 🌡️ Temperature - Ensure cooling system works");
+        troubleshooting.writeln("6) 🔊 Sound - Listen for mechanical problems");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("🔧 TOOLS YOU NEED:");
+        troubleshooting.writeln("• Digital multimeter for electrical testing");
+        troubleshooting.writeln("• Pressure gauge for fuel system");
+        troubleshooting.writeln("• Tachometer to check engine RPM");
+        troubleshooting.writeln("• Test lamp for circuit testing");
+        troubleshooting.writeln("");
+        troubleshooting.writeln("💡 TECHNICIAN TIP: 80% of generator problems can be solved with basic checks. If still not working, time to call professional service.");
       }
+
+      troubleshooting.writeln("");
+      troubleshooting.writeln("🤝 I understand this is frustrating, but don't worry. If the problem persists, I recommend:");
+      troubleshooting.writeln("📞 Contact our technical team: +60 12-968 9816");
+      troubleshooting.writeln("📧 Email: technical@genset.com.my");
+      troubleshooting.writeln("🏢 On-site service available");
+      troubleshooting.writeln("");
+      troubleshooting.writeln("⚡ We have complete spare parts stock and certified technicians. Can complete common problems within one day!");
     }
 
     return troubleshooting.toString();
@@ -2386,7 +2602,7 @@ class KnowledgeBaseService {
   // Enhanced intelligence methods
   static Map<String, dynamic> _analyzeConversationContext(String userMessage, List<ChatMessage> conversationHistory) {
     Map<String, dynamic> analysis = {
-      'userIntent': _detectUserIntent(userMessage),
+      'userIntent': detectUserIntent(userMessage),
       'conversationFlow': _analyzeConversationFlow(conversationHistory),
       'emotionalTone': _detectEmotionalTone(userMessage),
       'complexityLevel': _assessComplexity(userMessage),
@@ -2396,26 +2612,102 @@ class KnowledgeBaseService {
     return analysis;
   }
 
-  static String _detectUserIntent(String message) {
+  static String detectUserIntent(String message) {
     String lowerMessage = message.toLowerCase();
-    
-    if (lowerMessage.contains('price') || lowerMessage.contains('cost') || lowerMessage.contains('quotation')) {
-      return 'pricing_inquiry';
-    } else if (lowerMessage.contains('compare') || lowerMessage.contains('difference') || lowerMessage.contains('vs')) {
-      return 'comparison_request';
-    } else if (lowerMessage.contains('recommend') || lowerMessage.contains('suggest') || lowerMessage.contains('best')) {
-      return 'recommendation_request';
-    } else if (lowerMessage.contains('spec') || lowerMessage.contains('technical') || lowerMessage.contains('detail')) {
-      return 'technical_inquiry';
-    } else if (lowerMessage.contains('install') || lowerMessage.contains('setup') || lowerMessage.contains('maintenance')) {
-      return 'installation_inquiry';
-    } else if (lowerMessage.contains('help') || lowerMessage.contains('what can you do')) {
-      return 'help_request';
-    } else if (lowerMessage.contains('hello') || lowerMessage.contains('hi') || lowerMessage.contains('hey')) {
-      return 'greeting';
-    } else {
-      return 'general_inquiry';
+
+    // Error code detection takes priority
+    List<String> detectedCodes = detectErrorCodes(message);
+    if (detectedCodes.isNotEmpty) {
+      return 'error_code_query';
     }
+
+    // Troubleshooting queries
+    if (lowerMessage.contains('problem') || lowerMessage.contains('issue') ||
+        lowerMessage.contains('troubleshoot') || lowerMessage.contains('not working') ||
+        lowerMessage.contains('won\'t start') || lowerMessage.contains('fail') ||
+        lowerMessage.contains('error') || lowerMessage.contains('broken') ||
+        lowerMessage.contains('stop') || lowerMessage.contains('fix') ||
+        lowerMessage.contains('repair') || lowerMessage.contains('fault')) {
+      return 'troubleshooting';
+    }
+
+    // Maintenance queries
+    if (lowerMessage.contains('maintenance') || lowerMessage.contains('service') ||
+        lowerMessage.contains('check') || lowerMessage.contains('inspect') ||
+        lowerMessage.contains('oil change') || lowerMessage.contains('filter') ||
+        lowerMessage.contains('schedule') || lowerMessage.contains('routine')) {
+      return 'maintenance_inquiry';
+    }
+
+    // Product inquiries
+    if (lowerMessage.contains('generator') || lowerMessage.contains('genset') ||
+        lowerMessage.contains('power bank') || lowerMessage.contains('battery') ||
+        lowerMessage.contains('ats') || lowerMessage.contains('transfer switch') ||
+        lowerMessage.contains('avs') || lowerMessage.contains('voltage stabilizer') ||
+        lowerMessage.contains('oversight') || lowerMessage.contains('monitoring') ||
+        lowerMessage.contains('kva') || lowerMessage.contains('kw') ||
+        lowerMessage.contains('specification') || lowerMessage.contains('spec') ||
+        lowerMessage.contains('model') || lowerMessage.contains('feature')) {
+      return 'product_inquiry';
+    }
+
+    // Pricing inquiries
+    if (lowerMessage.contains('price') || lowerMessage.contains('cost') ||
+        lowerMessage.contains('quotation') || lowerMessage.contains('quote') ||
+        lowerMessage.contains('how much') || lowerMessage.contains('budget')) {
+      return 'pricing_inquiry';
+    }
+
+    // Comparison requests
+    if (lowerMessage.contains('compare') || lowerMessage.contains('difference') ||
+        lowerMessage.contains('vs') || lowerMessage.contains('versus') ||
+        lowerMessage.contains('better') || lowerMessage.contains('which is')) {
+      return 'comparison_request';
+    }
+
+    // Recommendation requests
+    if (lowerMessage.contains('recommend') || lowerMessage.contains('suggest') ||
+        lowerMessage.contains('best') || lowerMessage.contains('should i') ||
+        lowerMessage.contains('what do you think') || lowerMessage.contains('advice')) {
+      return 'recommendation_request';
+    }
+
+    // Technical inquiries
+    if (lowerMessage.contains('technical') || lowerMessage.contains('detail') ||
+        lowerMessage.contains('how does') || lowerMessage.contains('explain') ||
+        lowerMessage.contains('work') || lowerMessage.contains('function')) {
+      return 'technical_inquiry';
+    }
+
+    // Installation inquiries
+    if (lowerMessage.contains('install') || lowerMessage.contains('setup') ||
+        lowerMessage.contains('mount') || lowerMessage.contains('connect') ||
+        lowerMessage.contains('wiring') || lowerMessage.contains('commissioning')) {
+      return 'installation_inquiry';
+    }
+
+    // Help requests
+    if (lowerMessage.contains('help') || lowerMessage.contains('what can you do') ||
+        lowerMessage.contains('assist') || lowerMessage.contains('support')) {
+      return 'help_request';
+    }
+
+    // Greetings
+    if (lowerMessage.contains('hello') || lowerMessage.contains('hi') ||
+        lowerMessage.contains('hey') || lowerMessage.contains('good morning') ||
+        lowerMessage.contains('good afternoon') || lowerMessage.contains('good evening')) {
+      return 'greeting';
+    }
+
+    // Contact inquiries
+    if (lowerMessage.contains('contact') || lowerMessage.contains('phone') ||
+        lowerMessage.contains('email') || lowerMessage.contains('reach') ||
+        lowerMessage.contains('call') || lowerMessage.contains('talk to') ||
+        lowerMessage.contains('speak with')) {
+      return 'contact_inquiry';
+    }
+
+    return 'general_inquiry';
   }
 
   static String _analyzeConversationFlow(List<ChatMessage> history) {
@@ -2774,6 +3066,177 @@ class KnowledgeBaseService {
     }
     
     return followUpText;
+  }
+
+  // Error code detection and handling methods
+  static List<String> detectErrorCodes(String message) {
+    if (_errorCodes == null) return [];
+
+    List<String> detectedCodes = [];
+    String lowerMessage = message.toLowerCase();
+
+    // Check for error codes in the message
+    Map<String, dynamic> errorCodes = _errorCodes!['error_codes'];
+    errorCodes.forEach((code, data) {
+      // Check for exact code matches
+      if (lowerMessage.contains(code.toLowerCase())) {
+        detectedCodes.add(code);
+      }
+
+      // Check for common variations and descriptions
+      String description = (data['description'] ?? '').toLowerCase();
+      if (lowerMessage.contains(description)) {
+        detectedCodes.add(code);
+      }
+    });
+
+    // Remove duplicates
+    return detectedCodes.toSet().toList();
+  }
+
+  static String _handleErrorCodeQuery(List<String> errorCodes, String message, String language) {
+    if (_errorCodes == null) {
+      return _getLocalizedResponse("I'm having trouble accessing the error code database. Please try again later.", language);
+    }
+
+    StringBuffer response = StringBuffer();
+
+    if (language == 'ms') {
+      response.writeln("🔧 ANALISIS KOD KESALAHAN");
+      response.writeln("");
+      response.writeln("Saya telah mengesan kod kesalahan berikut dalam mesej anda:");
+      response.writeln("");
+    } else if (language == 'zh') {
+      response.writeln("🔧 故障代码分析");
+      response.writeln("");
+      response.writeln("我在您的消息中检测到以下故障代码：");
+      response.writeln("");
+    } else {
+      response.writeln("🔧 ERROR CODE ANALYSIS");
+      response.writeln("");
+      response.writeln("I've detected the following error codes in your message:");
+      response.writeln("");
+    }
+
+    // Process each detected error code
+    Map<String, dynamic> errorCodesData = _errorCodes!['error_codes'];
+    for (String code in errorCodes) {
+      if (errorCodesData.containsKey(code)) {
+        Map<String, dynamic> errorData = errorCodesData[code];
+
+        if (language == 'ms') {
+          response.writeln("🚨 **KOD: $code**");
+          response.writeln("📋 Penerangan: ${errorData['description']}");
+          response.writeln("⚠️ Keparahan: ${errorData['severity']}");
+          response.writeln("🛑 Tindakan Segera: ${errorData['immediate_action']}");
+          response.writeln("");
+
+          response.writeln("🔍 Punca Berpotensi:");
+          List<String> causes = List<String>.from(errorData['causes']);
+          for (int i = 0; i < causes.length; i++) {
+            response.writeln("${i + 1}. ${causes[i]}");
+          }
+          response.writeln("");
+
+          response.writeln("🛠️ Penyelesaian:");
+          List<String> solutions = List<String>.from(errorData['solutions']);
+          for (int i = 0; i < solutions.length; i++) {
+            response.writeln("${i + 1}. ${solutions[i]}");
+          }
+          response.writeln("");
+
+          response.writeln("👨‍🔧 Catatan Juruteknik: ${errorData['technician_notes']}");
+          response.writeln("");
+        } else if (language == 'zh') {
+          response.writeln("🚨 **代码: $code**");
+          response.writeln("📋 描述: ${errorData['description']}");
+          response.writeln("⚠️ 严重程度: ${errorData['severity']}");
+          response.writeln("🛑 立即行动: ${errorData['immediate_action']}");
+          response.writeln("");
+
+          response.writeln("🔍 潜在原因:");
+          List<String> causes = List<String>.from(errorData['causes']);
+          for (int i = 0; i < causes.length; i++) {
+            response.writeln("${i + 1}. ${causes[i]}");
+          }
+          response.writeln("");
+
+          response.writeln("🛠️ 解决方案:");
+          List<String> solutions = List<String>.from(errorData['solutions']);
+          for (int i = 0; i < solutions.length; i++) {
+            response.writeln("${i + 1}. ${solutions[i]}");
+          }
+          response.writeln("");
+
+          response.writeln("👨‍🔧 技术员备注: ${errorData['technician_notes']}");
+          response.writeln("");
+        } else {
+          response.writeln("🚨 **CODE: $code**");
+          response.writeln("📋 Description: ${errorData['description']}");
+          response.writeln("⚠️ Severity: ${errorData['severity']}");
+          response.writeln("🛑 Immediate Action: ${errorData['immediate_action']}");
+          response.writeln("");
+
+          response.writeln("🔍 Potential Causes:");
+          List<String> causes = List<String>.from(errorData['causes']);
+          for (int i = 0; i < causes.length; i++) {
+            response.writeln("${i + 1}. ${causes[i]}");
+          }
+          response.writeln("");
+
+          response.writeln("🛠️ Solutions:");
+          List<String> solutions = List<String>.from(errorData['solutions']);
+          for (int i = 0; i < solutions.length; i++) {
+            response.writeln("${i + 1}. ${solutions[i]}");
+          }
+          response.writeln("");
+
+          response.writeln("👨‍🔧 Technician Notes: ${errorData['technician_notes']}");
+          response.writeln("");
+        }
+      }
+    }
+
+    // Add follow-up questions
+    if (language == 'ms') {
+      response.writeln("❓ Soalan Susulan:");
+      response.writeln("• Adakah generator masih berjalan?");
+      response.writeln("• Bilakah kod kesalahan ini muncul?");
+      response.writeln("• Adakah terdapat sebarang gejala lain?");
+      response.writeln("• Adakah anda telah cuba sebarang penyelesaian?");
+      response.writeln("");
+      response.writeln("📞 **Untuk bantuan segera, hubungi teknikal kami:**");
+      response.writeln("• Telefon: +60 12-968 9816");
+      response.writeln("• WhatsApp: +60 12-968 9816");
+      response.writeln("");
+      response.writeln("⚠️ **PENTING:** Jika kod kesalahan menunjukkan 'CRITICAL' atau 'HIGH', hentikan generator dengan segera untuk mengelakkan kerosakan yang lebih teruk.");
+    } else if (language == 'zh') {
+      response.writeln("❓ 后续问题:");
+      response.writeln("• 发电机还在运行吗？");
+      response.writeln("• 这个故障代码是什么时候出现的？");
+      response.writeln("• 是否有其他症状？");
+      response.writeln("• 您是否已经尝试过任何解决方案？");
+      response.writeln("");
+      response.writeln("📞 **如需紧急帮助，请联系我们的技术人员:**");
+      response.writeln("• 电话: +60 12-968 9816");
+      response.writeln("• WhatsApp: +60 12-968 9816");
+      response.writeln("");
+      response.writeln("⚠️ **重要:** 如果故障代码显示'CRITICAL'或'HIGH'，请立即停止发电机以避免更严重的损坏。");
+    } else {
+      response.writeln("❓ Follow-up Questions:");
+      response.writeln("• Is the generator still running?");
+      response.writeln("• When did this error code appear?");
+      response.writeln("• Are there any other symptoms?");
+      response.writeln("• Have you tried any solutions already?");
+      response.writeln("");
+      response.writeln("📞 **For immediate assistance, contact our technical team:**");
+      response.writeln("• Phone: +60 12-968 9816");
+      response.writeln("• WhatsApp: +60 12-968 9816");
+      response.writeln("");
+      response.writeln("⚠️ **IMPORTANT:** If the error code shows 'CRITICAL' or 'HIGH' severity, stop the generator immediately to prevent further damage.");
+    }
+
+    return response.toString();
   }
 }
 

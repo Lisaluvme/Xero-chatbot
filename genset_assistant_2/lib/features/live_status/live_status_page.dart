@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../services/api_service.dart';
-import '../../models/generator_model.dart';
+import '../../services/mirror_api_service.dart';
+import '../../models/mirror_genset_model.dart';
 import '../../services/notification_service.dart';
 
 
@@ -12,59 +12,41 @@ class LiveStatusPage extends StatefulWidget {
 }
 
 class _LiveStatusPageState extends State<LiveStatusPage> {
-  final ApiService _apiService = ApiService();
-  GeneratorStatus? _generatorStatus;
+  List<MirrorGenset> _gensets = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadGeneratorStatus();
+    _loadGensets();
   }
 
-  Future<void> _loadGeneratorStatus() async {
+  Future<void> _loadGensets() async {
     try {
-      final status = await _apiService.getGeneratorStatus();
+      final gensets = await MirrorApiService.getGensets();
       setState(() {
-        _generatorStatus = status;
+        _gensets = gensets;
         _isLoading = false;
       });
 
       final notificationService = NotificationService();
 
-      // 1. 故障提醒
-      if (status.faults.isNotEmpty) {
-        await notificationService.showFaultAlert(
-          id: 1,
-          title: 'Generator Fault',
-          body: status.faults.join(', '),
-        );
-      }
-
-      // 2. 燃油提醒
-      if (status.fuelLevel < 20) {
-        await notificationService.showMaintenanceReminder(
-          id: 2,
-          title: 'Low Fuel Warning',
-          body: 'Fuel level is below 20%',
-        );
-      }
-
-      // 3. 运行时间提醒
-      if (status.runHours > 500) {
-        await notificationService.showServiceReminder(
-          id: 3,
-          title: 'Service Reminder',
-          body: 'Generator has run over 500 hours. Service required.',
-          scheduledDate: DateTime.now().add(const Duration(seconds: 5)),
-        );
+      // Check for alarms in any genset
+      for (var genset in gensets) {
+        if (genset.alarmList.isNotEmpty) {
+          await notificationService.showFaultAlert(
+            id: 1,
+            title: 'Generator Alarm',
+            body: '${genset.gsname}: ${genset.alarmList.join(', ')}',
+          );
+        }
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load generator status: $e')),
+        SnackBar(content: Text('Failed to load genset data: $e')),
       );
     }
   }
@@ -73,138 +55,156 @@ class _LiveStatusPageState extends State<LiveStatusPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
+        backgroundColor: const Color(0xFF1A3C6E), // Primary Blue
+        foregroundColor: Colors.white,
+        elevation: 2,
+        shadowColor: const Color(0xFF1A3C6E).withOpacity(0.3),
         title: const Text('Live Generator Status'),
         centerTitle: true,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1E3A8A), Color(0xFF14B8A6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: _isLoading
+          ? Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary))
           : RefreshIndicator(
-        onRefresh: _loadGeneratorStatus,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100.0), // Added bottom padding to avoid navigation bar overlap
-          children: [
-            if (_generatorStatus != null) ...[
-              _buildStatusCard(
-                'Generator Status',
-                _generatorStatus!.isRunning ? 'Running' : 'Stopped',
-                _generatorStatus!.isRunning ? Colors.green : Colors.red,
-                Icons.power,
-              ),
-              _buildStatusCard(
-                'Location',
-                _generatorStatus!.location,
-                Colors.blue,
-                Icons.location_on,
-              ),
-              _buildStatusCard(
-                'Run Hours',
-                '${_generatorStatus!.runHours} hours',
-                Colors.purple,
-                Icons.timer,
-              ),
-              _buildStatusCard(
-                'Fuel Level',
-                '${_generatorStatus!.fuelLevel}%',
-                _getFuelColor(_generatorStatus!.fuelLevel),
-                Icons.local_gas_station,
-              ),
-              _buildStatusCard(
-                'Battery Voltage',
-                '${_generatorStatus!.batteryVoltage}V',
-                _getBatteryColor(_generatorStatus!.batteryVoltage),
-                Icons.battery_std,
-              ),
-              _buildStatusCard(
-                'Temperature',
-                '${_generatorStatus!.temperature}°C',
-                _getTemperatureColor(_generatorStatus!.temperature),
-                Icons.thermostat,
-              ),
-              _buildStatusCard(
-                'Oil Pressure',
-                '${_generatorStatus!.oilPressure} PSI',
-                _getPressureColor(_generatorStatus!.oilPressure),
-                Icons.oil_barrel,
-              ),
-              if (_generatorStatus!.faults.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                const Text(
-                  'Active Faults',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ..._generatorStatus!.faults.map(
-                      (fault) => Card(
-                    color: Colors.red.shade50,
-                    child: ListTile(
-                      leading: const Icon(Icons.error, color: Colors.red),
-                      title: Text(fault),
-                      subtitle: const Text('Requires immediate attention'),
+              onRefresh: _loadGensets,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100.0), // Added bottom padding to avoid navigation bar overlap
+                children: [
+                  if (_gensets.isNotEmpty) ...[
+                    ..._gensets.map((genset) => _buildGensetCard(genset)),
+                  ] else
+                    Center(
+                      child: Text('No genset data available', style: TextStyle(color: Theme.of(context).colorScheme.onSecondary)),
                     ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.tertiary,
+                      foregroundColor: Theme.of(context).colorScheme.onTertiary,
+                    ),
+                    onPressed: _loadGensets,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Refresh Status'),
+                  ),
+                ],
+              ),
+            ),
+      ),
+    );
+  }
+
+  Widget _buildGensetCard(MirrorGenset genset) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              genset.gsname,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildStatusRow('Module Name', genset.modulename, Icons.settings),
+            _buildStatusRow('Status', genset.statusName, Icons.power, color: _getStatusColor(genset.statusName)),
+            _buildStatusRow('Total Time', genset.totaltime, Icons.timer),
+            _buildStatusRow('Day Time', genset.daytime, Icons.access_time),
+            if (genset.alarmList.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Alarms',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+              const SizedBox(height: 4),
+              ...genset.alarmList.map(
+                (alarm) => Container(
+                  margin: const EdgeInsets.only(bottom: 4),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.error.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Theme.of(context).colorScheme.error.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning, color: Theme.of(context).colorScheme.error, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          alarm,
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ] else
-              const Center(
-                child: Text('Unable to load generator status'),
               ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: _loadGeneratorStatus,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Refresh Status'),
-            ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatusCard(String title, String value, Color color, IconData icon) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: Icon(icon, size: 40, color: color),
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(value),
-        trailing: Icon(
-          Icons.circle,
-          color: color,
-          size: 16,
-        ),
+  Widget _buildStatusRow(String label, String value, IconData icon, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 24, color: color ?? Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 12),
+          Text(
+            '$label: ',
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(color: Theme.of(context).colorScheme.onSecondary),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Color _getFuelColor(int fuelLevel) {
-    if (fuelLevel > 50) return Colors.green;
-    if (fuelLevel > 25) return Colors.orange;
-    return Colors.red;
-  }
-
-  Color _getBatteryColor(double voltage) {
-    if (voltage >= 12.0) return Colors.green;
-    if (voltage >= 11.5) return Colors.orange;
-    return Colors.red;
-  }
-
-  Color _getTemperatureColor(int temperature) {
-    if (temperature < 80) return Colors.green;
-    if (temperature < 90) return Colors.orange;
-    return Colors.red;
-  }
-
-  Color _getPressureColor(int pressure) {
-    if (pressure >= 30) return Colors.green;
-    if (pressure >= 20) return Colors.orange;
-    return Colors.red;
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'running':
+      case 'online':
+        return Colors.green;
+      case 'stopped':
+      case 'offline':
+        return Colors.red;
+      case 'standby':
+        return Colors.orange;
+      default:
+        return Colors.blue;
+    }
   }
 }

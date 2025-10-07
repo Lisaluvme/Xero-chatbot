@@ -29,46 +29,63 @@ class _ServiceRecordsPageState extends State<ServiceRecordsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100.0), // Added bottom padding to avoid navigation bar overlap
-        children: [
-          const Text(
-            'Service Records',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+      backgroundColor: Theme.of(context).colorScheme.background,
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1A3C6E), // Primary Blue
+        foregroundColor: Colors.white,
+        elevation: 2,
+        shadowColor: const Color(0xFF1A3C6E).withOpacity(0.3),
+        title: const Text('Service Records'),
+        centerTitle: true,
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1E3A8A), Color(0xFF14B8A6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100.0), // Added bottom padding to avoid navigation bar overlap
+          children: [
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              ),
+              onPressed: _addNewServiceRecord,
+              icon: const Icon(Icons.add),
+              label: const Text('Add Service Record'),
             ),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: _addNewServiceRecord,
-            icon: const Icon(Icons.add),
-            label: const Text('Add Service Record'),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Upcoming Services',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+            const SizedBox(height: 16),
+            Text(
+              'Upcoming Services',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onBackground,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          ..._serviceRecords.where((record) => record.nextService.isAfter(DateTime.now()))
-              .map((record) => _buildServiceCard(record, true)),
-          const SizedBox(height: 16),
-          const Text(
-            'Recent Services',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+            const SizedBox(height: 8),
+            ..._serviceRecords.where((record) => record.nextService.isAfter(DateTime.now()))
+                .map((record) => _buildServiceCard(record, true)),
+            const SizedBox(height: 16),
+            Text(
+              'Recent Services',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onBackground,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          ..._serviceRecords.where((record) => record.nextService.isBefore(DateTime.now()) ||
-                                              record.nextService.isAtSameMomentAs(DateTime.now()))
-              .map((record) => _buildServiceCard(record, false)),
-        ],
+            const SizedBox(height: 8),
+            ..._serviceRecords.where((record) => record.nextService.isBefore(DateTime.now()) ||
+                                                record.nextService.isAtSameMomentAs(DateTime.now()))
+                .map((record) => _buildServiceCard(record, false)),
+          ],
+        ),
       ),
     );
   }
@@ -79,8 +96,12 @@ class _ServiceRecordsPageState extends State<ServiceRecordsPage> {
         ? (daysUntil <= 7 ? Colors.red : Colors.orange)
         : Colors.green;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -91,9 +112,10 @@ class _ServiceRecordsPageState extends State<ServiceRecordsPage> {
               children: [
                 Text(
                   record.type,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 Icon(
@@ -103,20 +125,40 @@ class _ServiceRecordsPageState extends State<ServiceRecordsPage> {
               ],
             ),
             const SizedBox(height: 8),
-            Text('Last Service: ${_formatDate(record.date)}'),
-            Text('Next Service: ${_formatDate(record.nextService)}'),
-            if (isUpcoming) Text('Due in: $daysUntil days'),
+            Text(
+              'Last Service: ${_formatDate(record.date)}',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSecondary),
+            ),
+            Text(
+              'Next Service: ${_formatDate(record.nextService)}',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSecondary),
+            ),
+            if (isUpcoming) Text(
+              'Due in: $daysUntil days',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSecondary),
+            ),
             const SizedBox(height: 8),
-            Text(record.description),
+            Text(
+              record.description,
+              style: TextStyle(color: Theme.of(context).colorScheme.onSecondary),
+            ),
             const SizedBox(height: 8),
             Row(
               children: [
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.tertiary,
+                    foregroundColor: Theme.of(context).colorScheme.onTertiary,
+                  ),
                   onPressed: () => _markAsCompleted(record),
                   child: const Text('Mark Completed'),
                 ),
                 const SizedBox(width: 8),
                 OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Theme.of(context).colorScheme.tertiary),
+                    foregroundColor: Theme.of(context).colorScheme.tertiary,
+                  ),
                   onPressed: () => _setReminder(record),
                   child: const Text('Set Reminder'),
                 ),
@@ -193,7 +235,10 @@ class _AddServiceRecordPageState extends State<AddServiceRecordPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.background,
+        foregroundColor: Theme.of(context).colorScheme.onBackground,
         title: const Text('Add Service Record'),
       ),
       body: Padding(
@@ -204,9 +249,18 @@ class _AddServiceRecordPageState extends State<AddServiceRecordPage> {
             children: [
               TextFormField(
                 controller: _typeController,
-                decoration: const InputDecoration(
+                style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
+                decoration: InputDecoration(
                   labelText: 'Service Type',
                   hintText: 'e.g., Oil Change, Air Filter',
+                  labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSecondary),
+                  hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSecondary),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).colorScheme.onSecondary),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).colorScheme.tertiary),
+                  ),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -218,14 +272,27 @@ class _AddServiceRecordPageState extends State<AddServiceRecordPage> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(
+                style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
+                decoration: InputDecoration(
                   labelText: 'Description',
                   hintText: 'Service details',
+                  labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSecondary),
+                  hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSecondary),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).colorScheme.onSecondary),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).colorScheme.tertiary),
+                  ),
                 ),
                 maxLines: 3,
               ),
               const SizedBox(height: 16),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.tertiary,
+                  foregroundColor: Theme.of(context).colorScheme.onTertiary,
+                ),
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
                     // Save the service record

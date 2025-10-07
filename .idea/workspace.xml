@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="dd1cc84a-3201-4abe-aaca-9b011fa16d0d" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/.metadata" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/.metadata" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/android/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/android/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/android/app/build.gradle.kts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/android/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/android/app/src/main/AndroidManifest.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/android/app/src/main/kotlin/com/example/genset_assistant_2/MainActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/android/app/src/main/kotlin/com/example/genset_assistant_2/MainActivity.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/android/build.gradle.kts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/android/build/reports/problems/problems-report.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/android/gradle.properties" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/android/gradle.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/android/gradle/wrapper/gradle-wrapper.properties" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/android/gradle/wrapper/gradle-wrapper.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/android/settings.gradle.kts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/lib/features/ai_chat/ai_chat_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/lib/features/ai_chat/ai_chat_page.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/lib/features/contact/contact_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/lib/features/contact/contact_page.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/lib/features/learn/learn_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/lib/features/learn/learn_page.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/lib/features/live_status/live_status_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/lib/features/live_status/live_status_page.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/lib/features/maintenance/maintenance_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/lib/features/maintenance/maintenance_page.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/lib/features/service_records/service_records_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/lib/features/service_records/service_records_page.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/lib/features/troubleshooting/troubleshooting_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/lib/features/troubleshooting/troubleshooting_page.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/lib/main.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/lib/services/api_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/lib/services/api_service.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/lib/services/knowledge_base_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/lib/services/knowledge_base_service.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/lib/services/notification_service.dart" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/lib/services/notification_service.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/pubspec.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant_2/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant_2/pubspec.yaml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[DeviceId(pluginId=LocalEmulator, isTemplate=false, identifier=path=C:\Users\tm\.android\avd\Pixel_5.avd)]" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="ROOT_SYNC" value="DONT_SYNC" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;jincai04&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/swatchie-1/megagenset99.git&quot;,
+    &quot;accountId&quot;: &quot;077bbcb9-85c0-4ebe-aee6-9fc3945a5378&quot;
+  }
+}</component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 5
+}</component>
+  <component name="ProjectId" id="32u7DahMqSTOturUq9Ngf02oIz4" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "Application.Unnamed.executor": "Run",
+    "Flutter.Mega Genset.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "ToolWindow.Running Devices.ShowToolbar": "false",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "com.android.tools.idea.streaming.emulator.frame.visible": "false",
+    "com.google.services.firebase.aqiPopupShown": "true",
+    "dart.analysis.tool.window.visible": "false",
+    "git-widget-placeholder": "main",
+    "io.flutter.reload.alreadyRun": "true",
+    "project.structure.last.edited": "Project",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
+    "settings.editor.selected.configurable": "AndroidSdkUpdater",
+    "show.migrate.to.gradle.popup": "false"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="dd1cc84a-3201-4abe-aaca-9b011fa16d0d" name="Changes" comment="" />
+      <created>1758258435381</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1758258435381</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="Dart">
+          <url>file://$PROJECT_DIR$/genset_assistant_2/lib/features/ai_chat/openai_settings_page.dart</url>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>

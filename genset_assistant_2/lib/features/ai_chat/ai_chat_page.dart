@@ -11,6 +11,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import '../../services/knowledge_base_service.dart';
 import '../../services/wordpress_service.dart' as deepseek_service;
+import '../../services/firestore_service.dart';
 
 class AiChatPage extends StatefulWidget {
   final String? initialMessage;
@@ -155,6 +156,37 @@ class _AiChatPageState extends State<AiChatPage> {
       _addMessage(userMessage, true);
       _controller.clear();
       setState(() {}); // 刷新按钮状态
+
+      // Auto-detect language from user message
+      String detectedLanguage = _detectLanguage(userMessage);
+      if (detectedLanguage != _currentLanguage) {
+        print("DEBUG: Auto-detected language change from $_currentLanguage to $detectedLanguage");
+        setState(() {
+          _currentLanguage = detectedLanguage;
+        });
+        _updateTtsLanguage();
+
+        // Show language change notification
+        String notificationMessage;
+        switch (detectedLanguage) {
+          case 'ms':
+            notificationMessage = 'Bahasa dikesan: Bahasa Malaysia';
+            break;
+          case 'zh':
+            notificationMessage = '检测到语言：中文';
+            break;
+          default:
+            notificationMessage = 'Language detected: English';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(notificationMessage),
+            duration: const Duration(seconds: 2),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
 
       // Show typing indicator
       _showTypingIndicator();
@@ -304,44 +336,98 @@ class _AiChatPageState extends State<AiChatPage> {
     print("DEBUG: User message: $userMessage");
 
     String? imagePath;
+    List<String> detectedErrorCodes = [];
+    String detectedIntent = 'general_inquiry';
+
+    // Detect error codes in user message
+    detectedErrorCodes = KnowledgeBaseService.detectErrorCodes(userMessage);
+
+    // Detect user intent
+    detectedIntent = KnowledgeBaseService.detectUserIntent(userMessage);
 
     // Check if user is asking about a specific generator to include image
+    // Only show image if exactly ONE genset type is mentioned
     String lowerMessage = userMessage.toLowerCase();
+    List<String> gensetMatches = [];
+
+    // Check for each genset type
     if (lowerMessage.contains('15kva') || lowerMessage.contains('15 kw')) {
-      imagePath = 'assets/images/15KVA MGM GENERATOR_image.png';
-    } else if (lowerMessage.contains('30kva') || lowerMessage.contains('30 kw')) {
-      if (lowerMessage.contains('isuzu')) {
-        imagePath = 'assets/images/30KVA ISUZU_image.png';
-      } else if (lowerMessage.contains('compact')) {
-        imagePath = 'assets/images/30KVA  MGM COMPACT GENERATOR_image.png';
-      } else if (lowerMessage.contains('mark 15')) {
-        imagePath = 'assets/images/30KVA MGM GENERATOR MARK 15_image.png';
-      } else {
-        imagePath = 'assets/images/30KVA MGM GENERATOR_image.png';
-      }
-    } else if (lowerMessage.contains('60kva') || lowerMessage.contains('60 kw')) {
-      imagePath = 'assets/images/60KVA MGM GENERATOR_image.png';
-    } else if (lowerMessage.contains('100kva') || lowerMessage.contains('100 kw')) {
-      imagePath = 'assets/images/100KVA MGM GENERATOR_image.png';
-    } else if (lowerMessage.contains('150kva') || lowerMessage.contains('150 kw')) {
-      imagePath = 'assets/images/160KVA MGM GENERATOR_image.png';
-    } else if (lowerMessage.contains('160kva') || lowerMessage.contains('160 kw')) {
-      imagePath = 'assets/images/160KVA MGM GENERATOR_image.png';
-    } else if (lowerMessage.contains('250kva') || lowerMessage.contains('250 kw')) {
-      imagePath = 'assets/images/250KVA MGM Generator_image.png';
-    } else if (lowerMessage.contains('350kva') || lowerMessage.contains('350 kw')) {
-      imagePath = 'assets/images/350kva MGM GENERATOR_image.png';
-    } else if (lowerMessage.contains('500kva') || lowerMessage.contains('500 kw')) {
-      imagePath = 'assets/images/500KVA MGM GENERATOR_image.png';
-    } else if (lowerMessage.contains('power bank') || lowerMessage.contains('battery')) {
-      if (lowerMessage.contains('20kwh') || lowerMessage.contains('20 kwh')) {
-        imagePath = 'assets/images/10KW MGM PWR BNK WITH 20KWH BATTERY(BATTERY)_image.png';
-      } else if (lowerMessage.contains('30kwh') || lowerMessage.contains('30 kwh')) {
-        imagePath = 'assets/images/10KW MGM PWR BNK WITH 30KWH BATTERY(V2)(BATTERY)_image.png';
-      } else {
-        imagePath = 'assets/images/10KW MGM PWR BNK WITH 20KWH BATTERY(BATTERY)_image.png';
+      gensetMatches.add('15kva');
+    }
+    if (lowerMessage.contains('30kva') || lowerMessage.contains('30 kw')) {
+      gensetMatches.add('30kva');
+    }
+    if (lowerMessage.contains('60kva') || lowerMessage.contains('60 kw')) {
+      gensetMatches.add('60kva');
+    }
+    if (lowerMessage.contains('100kva') || lowerMessage.contains('100 kw')) {
+      gensetMatches.add('100kva');
+    }
+    if (lowerMessage.contains('150kva') || lowerMessage.contains('150 kw') ||
+        lowerMessage.contains('160kva') || lowerMessage.contains('160 kw')) {
+      gensetMatches.add('160kva');
+    }
+    if (lowerMessage.contains('250kva') || lowerMessage.contains('250 kw')) {
+      gensetMatches.add('250kva');
+    }
+    if (lowerMessage.contains('350kva') || lowerMessage.contains('350 kw')) {
+      gensetMatches.add('350kva');
+    }
+    if (lowerMessage.contains('500kva') || lowerMessage.contains('500 kw')) {
+      gensetMatches.add('500kva');
+    }
+    if (lowerMessage.contains('power bank') || lowerMessage.contains('battery')) {
+      gensetMatches.add('powerbank');
+    }
+
+    // Only show image if exactly ONE genset type is mentioned
+    if (gensetMatches.length == 1) {
+      String gensetType = gensetMatches[0];
+      switch (gensetType) {
+        case '15kva':
+          imagePath = 'assets/images/15KVA MGM GENERATOR_image.png';
+          break;
+        case '30kva':
+          if (lowerMessage.contains('isuzu')) {
+            imagePath = 'assets/images/30KVA ISUZU_image.png';
+          } else if (lowerMessage.contains('compact')) {
+            imagePath = 'assets/images/30KVA  MGM COMPACT GENERATOR_image.png';
+          } else if (lowerMessage.contains('mark 15')) {
+            imagePath = 'assets/images/30KVA MGM GENERATOR MARK 15_image.png';
+          } else {
+            imagePath = 'assets/images/30KVA MGM GENERATOR_image.png';
+          }
+          break;
+        case '60kva':
+          imagePath = 'assets/images/60KVA MGM GENERATOR_image.png';
+          break;
+        case '100kva':
+          imagePath = 'assets/images/100KVA MGM GENERATOR_image.png';
+          break;
+        case '160kva':
+          imagePath = 'assets/images/160KVA MGM GENERATOR_image.png';
+          break;
+        case '250kva':
+          imagePath = 'assets/images/250KVA MGM Generator_image.png';
+          break;
+        case '350kva':
+          imagePath = 'assets/images/350kva MGM GENERATOR_image.png';
+          break;
+        case '500kva':
+          imagePath = 'assets/images/500KVA MGM GENERATOR_image.png';
+          break;
+        case 'powerbank':
+          if (lowerMessage.contains('20kwh') || lowerMessage.contains('20 kwh')) {
+            imagePath = 'assets/images/10KW MGM PWR BNK WITH 20KWH BATTERY(BATTERY)_image.png';
+          } else if (lowerMessage.contains('30kwh') || lowerMessage.contains('30 kwh')) {
+            imagePath = 'assets/images/10KW MGM PWR BNK WITH 30KWh BATTERY(V2)(BATTERY)_image.png';
+          } else {
+            imagePath = 'assets/images/10KW MGM PWR BNK WITH 20KWH BATTERY(BATTERY)_image.png';
+          }
+          break;
       }
     }
+    // If multiple genset types are mentioned, no image is shown (imagePath remains null)
 
     // Use DeepSeek service for intelligent responses with fallback to knowledge base
     try {
@@ -351,7 +437,14 @@ class _AiChatPageState extends State<AiChatPage> {
         language: _currentLanguage,
       );
       print("DEBUG: DeepSeek response received: ${response.substring(0, 100)}...");
-      return {'text': response, 'image': imagePath};
+
+      // Add natural follow-up questions for technician-like behavior
+      String enhancedResponse = _addTechnicianFollowUp(response, userMessage, _currentLanguage);
+
+      // Log the interaction to Firestore
+      await _logChatInteraction(userMessage, enhancedResponse, detectedErrorCodes, detectedIntent);
+
+      return {'text': enhancedResponse, 'image': imagePath};
     } catch (e) {
       print("Error using DeepSeek service, falling back to knowledge base: $e");
       // Fallback to knowledge base service
@@ -362,7 +455,241 @@ class _AiChatPageState extends State<AiChatPage> {
         conversationHistory: _messages.where((m) => m.text != '...').toList(),
       );
       print("DEBUG: KnowledgeBase response received: ${response.substring(0, 100)}...");
-      return {'text': response, 'image': imagePath};
+
+      // Add natural follow-up questions for technician-like behavior
+      String enhancedResponse = _addTechnicianFollowUp(response, userMessage, _currentLanguage);
+
+      // Log the interaction to Firestore
+      await _logChatInteraction(userMessage, enhancedResponse, detectedErrorCodes, detectedIntent);
+
+      return {'text': enhancedResponse, 'image': imagePath};
+    }
+  }
+
+  Future<void> _logChatInteraction(String userMessage, String botResponse, List<String> detectedErrorCodes, String intent) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      FirestoreService firestoreService = FirestoreService();
+
+      // Log general chat interaction
+      await firestoreService.logChatInteraction(
+        userId: user.uid,
+        userMessage: userMessage,
+        botResponse: botResponse,
+        language: _currentLanguage,
+        detectedErrorCodes: detectedErrorCodes,
+        intent: intent,
+        contextData: {
+          'conversationLength': _messages.length,
+          'hasImage': botResponse.contains('assets/images'),
+          'detectedLanguage': _currentLanguage,
+        },
+      );
+
+      // Log specific error code detections
+      if (detectedErrorCodes.isNotEmpty) {
+        for (String errorCode in detectedErrorCodes) {
+          // Get error code details from knowledge base
+          Map<String, dynamic>? errorData = KnowledgeBaseService.getKnowledgeBase()?['error_codes']?[errorCode];
+          if (errorData != null) {
+            await firestoreService.logErrorCodeDetection(
+              userId: user.uid,
+              errorCode: errorCode,
+              userMessage: userMessage,
+              severity: errorData['severity'] ?? 'unknown',
+              description: errorData['description'] ?? 'Unknown error',
+              intent: intent,
+            );
+          }
+        }
+      }
+    } catch (e) {
+      print('Error logging chat interaction: $e');
+      // Don't show error to user, just log it
+    }
+  }
+
+  String _addTechnicianFollowUp(String response, String userMessage, String language) {
+    String lowerMessage = userMessage.toLowerCase();
+    String lowerResponse = response.toLowerCase();
+
+    // Don't add follow-up if response already has questions or is very short
+    if (response.contains('?') || response.length < 100) {
+      return response;
+    }
+
+    // Add technician-like follow-up questions based on context
+    String followUp = '';
+
+    if (language == 'ms') {
+      // Troubleshooting follow-ups
+      if (lowerResponse.contains('masalah') || lowerResponse.contains('troubleshoot') ||
+          lowerResponse.contains('tidak hidup') || lowerResponse.contains('tiada output')) {
+        followUp = '\n\n👨‍🔧 *Sebagai juruteknik, saya perlu tahu lebih lanjut:*\n' +
+                   '• Generator masih hidup sekarang?\n' +
+                   '• Bilakah masalah ini bermula?\n' +
+                   '• Adakah lampu amaran menyala?\n' +
+                   '• Anda sudah cuba penyelesaian apa?';
+      }
+      // Product inquiry follow-ups
+      else if (lowerResponse.contains('generator') || lowerResponse.contains('spesifikasi') ||
+               lowerResponse.contains('model') || lowerResponse.contains('kva')) {
+        followUp = '\n\n🤔 *Untuk membantu anda lebih baik:*\n' +
+                   '• Anda perlukan untuk aplikasi apa?\n' +
+                   '• Berapa jam penggunaan sehari?\n' +
+                   '• Adakah ada keperluan khas?';
+      }
+      // Pricing follow-ups
+      else if (lowerResponse.contains('harga') || lowerResponse.contains('kos') ||
+               lowerResponse.contains('quotation')) {
+        followUp = '\n\n💰 *Untuk sebut harga yang tepat:*\n' +
+                   '• Kuantiti yang diperlukan?\n' +
+                   '• Lokasi penghantaran?\n' +
+                   '• Adakah termasuk pemasangan?';
+      }
+      // General empathetic follow-up
+      else {
+        followUp = '\n\n😊 *Saya di sini untuk bantu!* Jika ada lagi soalan tentang generator atau sistem kuasa, jangan segan bertanya. Pengalaman saya sebagai juruteknik sedia membantu! 🔧';
+      }
+    } else if (language == 'zh') {
+      // Troubleshooting follow-ups
+      if (lowerResponse.contains('故障') || lowerResponse.contains('问题') ||
+          lowerResponse.contains('无法启动') || lowerResponse.contains('无输出')) {
+        followUp = '\n\n👨‍🔧 *作为技师，我需要了解更多信息：*\n' +
+                   '• 发电机现在还在运行吗？\n' +
+                   '• 这个问题什么时候开始的？\n' +
+                   '• 是否有警告灯亮起？\n' +
+                   '• 您已经尝试过什么解决方案？';
+      }
+      // Product inquiry follow-ups
+      else if (lowerResponse.contains('发电机') || lowerResponse.contains('规格') ||
+               lowerResponse.contains('型号') || lowerResponse.contains('kva')) {
+        followUp = '\n\n🤔 *为了更好地帮助您：*\n' +
+                   '• 您需要用于什么应用？\n' +
+                   '• 每天使用多少小时？\n' +
+                   '• 是否有特殊要求？';
+      }
+      // Pricing follow-ups
+      else if (lowerResponse.contains('价格') || lowerResponse.contains('成本') ||
+               lowerResponse.contains('报价')) {
+        followUp = '\n\n💰 *为了准确报价：*\n' +
+                   '• 需要多少数量？\n' +
+                   '• 送货地点？\n' +
+                   '• 是否包括安装？';
+      }
+      // General empathetic follow-up
+      else {
+        followUp = '\n\n😊 *我在这里帮助您！* 如果您对发电机或电力系统有更多问题，请随时询问。我作为技师的经验随时为您服务！🔧';
+      }
+    } else {
+      // Troubleshooting follow-ups
+      if (lowerResponse.contains('problem') || lowerResponse.contains('troubleshoot') ||
+          lowerResponse.contains('won\'t start') || lowerResponse.contains('no output')) {
+        followUp = '\n\n👨‍🔧 *As a technician, I need to know more:*\n' +
+                   '• Is the generator still running now?\n' +
+                   '• When did this problem start?\n' +
+                   '• Are any warning lights on?\n' +
+                   '• What solutions have you tried already?';
+      }
+      // Product inquiry follow-ups
+      else if (lowerResponse.contains('generator') || lowerResponse.contains('specification') ||
+               lowerResponse.contains('model') || lowerResponse.contains('kva')) {
+        followUp = '\n\n🤔 *To help you better:*\n' +
+                   '• What application do you need it for?\n' +
+                   '• How many hours of daily usage?\n' +
+                   '• Any special requirements?';
+      }
+      // Pricing follow-ups
+      else if (lowerResponse.contains('price') || lowerResponse.contains('cost') ||
+               lowerResponse.contains('quotation')) {
+        followUp = '\n\n💰 *For accurate pricing:*\n' +
+                   '• How many units do you need?\n' +
+                   '• What\'s the delivery location?\n' +
+                   '• Does it include installation?';
+      }
+      // General empathetic follow-up
+      else {
+        followUp = '\n\n😊 *I\'m here to help!* If you have any more questions about generators or power systems, don\'\'t hesitate to ask. My experience as a technician is always here to assist! 🔧';
+      }
+    }
+
+    return response + followUp;
+  }
+
+  String _detectLanguage(String message) {
+    if (message.trim().isEmpty) return _currentLanguage;
+
+    String lowerMessage = message.toLowerCase();
+
+    // Malay language indicators
+    List<String> malayWords = [
+      'saya', 'anda', 'kami', 'mereka', 'apa', 'bagaimana', 'kenapa', 'di mana',
+      'generator', 'masalah', 'tidak', 'boleh', 'nak', 'mahu', 'perlu', 'ada',
+      'yang', 'dan', 'atau', 'dengan', 'untuk', 'daripada', 'pada', 'dalam',
+      'sudah', 'belum', 'akan', 'telah', 'sedang', 'lagi', 'juga', 'sangat',
+      'banyak', 'sedikit', 'besar', 'kecil', 'panas', 'sejuk', 'baik', 'buruk',
+      'harga', 'kos', 'beli', 'jual', 'cuba', 'buat', 'guna', 'jalan', 'kerja'
+    ];
+
+    // Chinese language indicators (simplified characters)
+    List<String> chineseChars = [
+      '的', '是', '在', '有', '和', '我', '你', '他', '她', '它', '这', '那',
+      '一', '二', '三', '四', '五', '六', '七', '八', '九', '十',
+      '不', '了', '吗', '呢', '啊', '哦', '嗯', '哈', '嘿', '呀',
+      '发电机', '问题', '可以', '需要', '没有', '什么', '怎么', '为什么', '哪里',
+      '价格', '成本', '购买', '销售', '尝试', '做', '使用', '运行', '工作'
+    ];
+
+    // Count Malay words
+    int malayCount = 0;
+    for (String word in malayWords) {
+      if (lowerMessage.contains(word)) {
+        malayCount++;
+      }
+    }
+
+    // Count Chinese characters
+    int chineseCount = 0;
+    for (String char in chineseChars) {
+      if (message.contains(char)) {
+        chineseCount++;
+      }
+    }
+
+    // Additional Malay detection - common Malay sentence patterns
+    bool hasMalayPatterns = lowerMessage.contains('tak ') ||
+                           lowerMessage.contains(' nak ') ||
+                           lowerMessage.contains(' boleh ') ||
+                           lowerMessage.contains(' ada ') ||
+                           lowerMessage.contains(' untuk ') ||
+                           lowerMessage.contains(' dengan ') ||
+                           lowerMessage.contains(' dari ') ||
+                           lowerMessage.contains(' ke ') ||
+                           lowerMessage.contains(' di ') ||
+                           lowerMessage.contains(' yang ') ||
+                           lowerMessage.contains(' dan ') ||
+                           (lowerMessage.contains('saya') && lowerMessage.contains('anda'));
+
+    // Additional Chinese detection - common Chinese patterns
+    bool hasChinesePatterns = message.contains('吗') ||
+                             message.contains('呢') ||
+                             message.contains('的') ||
+                             message.contains('了') ||
+                             message.contains('我') ||
+                             message.contains('你') ||
+                             message.contains('是') ||
+                             message.contains('在') ||
+                             message.contains('有');
+
+    // Language detection logic
+    if (chineseCount > malayCount && (chineseCount >= 2 || hasChinesePatterns)) {
+      return 'zh'; // Chinese
+    } else if (malayCount > chineseCount && (malayCount >= 3 || hasMalayPatterns)) {
+      return 'ms'; // Malay
+    } else {
+      return 'en'; // Default to English
     }
   }
 
@@ -419,56 +746,81 @@ class _AiChatPageState extends State<AiChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Genset Assistant',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.blue,
-        elevation: 0,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
-        ),
-        actions: [
-          // Language Selector
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            child: DropdownButton<String>(
-              value: _currentLanguage,
-              icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-              underline: Container(),
-              dropdownColor: Colors.blue,
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-              onChanged: _onLanguageChanged,
-              items: _languageNames.entries.map<DropdownMenuItem<String>>((entry) {
-                return DropdownMenuItem<String>(
-                  value: entry.key,
-                  child: Text(entry.value),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.blue.shade50, Colors.white],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF1E3A8A), // Dark blue
+              Color(0xFF3B82F6), // Medium blue
+              Color(0xFF60A5FA), // Light blue
+            ],
           ),
         ),
         child: Column(
           children: [
+            // Custom App Bar with gradient
+            Container(
+              padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF1E40AF), // Darker blue
+                    Color(0xFF2563EB), // Medium blue
+                    Color(0xFF3B82F6), // Lighter blue
+                  ],
+                ),
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: AppBar(
+                title: const Text(
+                  'Genset Assistant',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFFFFFFF),
+                  ),
+                ),
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                actions: [
+                  // Language Selector
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    child: DropdownButton<String>(
+                      value: _currentLanguage,
+                      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFFFFFFFF)),
+                      underline: Container(),
+                      dropdownColor: const Color(0xFF1E40AF),
+                      style: const TextStyle(color: Color(0xFFFFFFFF), fontSize: 12),
+                      onChanged: _onLanguageChanged,
+                      items: _languageNames.entries.map<DropdownMenuItem<String>>((entry) {
+                        return DropdownMenuItem<String>(
+                          value: entry.key,
+                          child: Text(entry.value),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              ),
+            ),
+            // Main content
             Expanded(
               child: _isLoading
                   ? const Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFFFFF)),
                 ),
               )
                   : Container(
@@ -483,22 +835,23 @@ class _AiChatPageState extends State<AiChatPage> {
                 ),
               ),
             ),
-            // 输入区
+            // Input area with gradient background
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    const Color(0xFF1E40AF).withOpacity(0.8),
+                    const Color(0xFF1E40AF).withOpacity(0.9),
+                  ],
+                ),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
               ),
               child: Row(
                 children: [
@@ -506,14 +859,19 @@ class _AiChatPageState extends State<AiChatPage> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: Colors.white.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(25),
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                          width: 1,
+                        ),
                       ),
                       child: TextField(
                         controller: _controller,
+                        style: const TextStyle(color: Color(0xFFFFFFFF)),
                         decoration: InputDecoration(
                           hintText: _getLocalizedHintText(),
+                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(vertical: 12),
                         ),
@@ -527,16 +885,31 @@ class _AiChatPageState extends State<AiChatPage> {
                     width: 45,
                     height: 45,
                     decoration: BoxDecoration(
-                      color: _controller.text.isEmpty
-                          ? Colors.grey.shade100
-                          : Colors.blue,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          _controller.text.isEmpty
+                              ? Colors.white.withOpacity(0.2)
+                              : const Color(0xFFFFD700), // Gold
+                          _controller.text.isEmpty
+                              ? Colors.white.withOpacity(0.1)
+                              : const Color(0xFFFFA500), // Orange
+                        ],
+                      ),
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey.shade200),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: IconButton(
                       icon: Icon(
                         _controller.text.isEmpty ? Icons.mic : Icons.send,
-                        color: _controller.text.isEmpty ? Colors.grey : Colors.white,
+                        color: _controller.text.isEmpty ? Colors.white : const Color(0xFF1E40AF),
                         size: 20,
                       ),
                       onPressed: () {
@@ -564,15 +937,8 @@ class _AiChatPageState extends State<AiChatPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: message.isUser ? Colors.blue : Colors.white,
+          color: message.isUser ? const Color(0xFFD4AF37) : const Color(0xFF2C2C2C),
           borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.75,
@@ -595,13 +961,13 @@ class _AiChatPageState extends State<AiChatPage> {
                       return Container(
                         height: 120,
                         decoration: BoxDecoration(
-                          color: Colors.grey[300],
+                          color: const Color(0xFF1A1A1A),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Center(
                           child: Icon(
                             Icons.image_not_supported,
-                            color: Colors.grey,
+                            color: Color(0xFFB3B3B3),
                             size: 40,
                           ),
                         ),
@@ -613,8 +979,8 @@ class _AiChatPageState extends State<AiChatPage> {
             // Display text
             Text(
               message.text,
-              style: TextStyle(
-                color: message.isUser ? Colors.white : Colors.black87,
+              style: const TextStyle(
+                color: Color(0xFFFFFFFF),
                 fontSize: 14,
               ),
             ),

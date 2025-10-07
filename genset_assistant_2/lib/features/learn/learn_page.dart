@@ -29,198 +29,145 @@ class _LearnPageState extends State<LearnPage>
 
   @override
   Widget build(BuildContext context) {
-    final modules = [
-      {
-        'title': 'Basic Operation',
-        'desc': 'Learn how to start, stop, and operate safely.',
-        'icon': Icons.power,
-        'color': Colors.redAccent,
-      },
-      {
-        'title': 'Safety Procedures',
-        'desc': 'Important safety guidelines for working with generators.',
-        'icon': Icons.security,
-        'color': Colors.orangeAccent,
-      },
-      {
-        'title': 'Generator Components',
-        'desc': 'Understand main parts and their functions.',
-        'icon': Icons.settings,
-        'color': Colors.blueAccent,
-      },
-      {
-        'title': 'Fuel Systems',
-        'desc': 'Fuel system working and maintenance requirements.',
-        'icon': Icons.local_gas_station,
-        'color': Colors.teal,
-      },
-      {
-        'title': 'Electrical Systems',
-        'desc': 'Understanding electrical output and connections.',
-        'icon': Icons.electrical_services,
-        'color': Colors.deepPurple,
-      },
-      {
-        'title': 'Cooling Systems',
-        'desc': 'How generators stay cool during operation.',
-        'icon': Icons.ac_unit,
-        'color': Colors.cyan,
-      },
-      {
-        'title': 'User Manual',
-        'desc': 'Step by step guide for using MGM Oversight.',
-        'icon': Icons.menu_book,
-        'color': Colors.green,
-        'isManual': true,
-      },
-    ];
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.background,
         elevation: 0,
-        title: const Text(
+        title: Text(
           "Learn Center",
           style: TextStyle(
-            color: Colors.black87,
+            color: Theme.of(context).colorScheme.onBackground,
             fontWeight: FontWeight.bold,
           ),
         ),
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onBackground),
       ),
       body: Padding(
-        padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100.0), // Added bottom padding to avoid navigation bar overlap
-        child: GridView.builder(
-          itemCount: modules.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, // 每行两个方块
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1,
+        padding: const EdgeInsets.all(16.0),
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return FadeTransition(
+                opacity: _controller,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.2),
+                    end: Offset.zero,
+                  ).animate(_controller),
+                  child: child,
+                ),
+              );
+            },
+            child: _buildUserManualCard(context),
           ),
-          itemBuilder: (context, index) {
-            final module = modules[index];
-            return AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                // 让卡片逐个淡入
-                final animation = CurvedAnimation(
-                  parent: _controller,
-                  curve: Interval(
-                    (index / modules.length),
-                    1.0,
-                    curve: Curves.easeOut,
-                  ),
-                );
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0, 0.1),
-                      end: Offset.zero,
-                    ).animate(animation),
-                    child: child,
-                  ),
-                );
-              },
-              child: _buildModuleCard(
-                context,
-                module['title'] as String,
-                module['desc'] as String,
-                module['icon'] as IconData,
-                module['color'] as Color,
-                isUserManual: module['isManual'] == true,
-              ),
-            );
-          },
         ),
       ),
     );
   }
 
-  Widget _buildModuleCard(
-      BuildContext context,
-      String title,
-      String description,
-      IconData icon,
-      Color color, {
-        bool isUserManual = false,
-      }) {
+  Widget _buildUserManualCard(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => setState(() {}),
-      onTapUp: (_) => setState(() {}),
-      onTapCancel: () => setState(() {}),
       onTap: () {
-        if (isUserManual) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const UserManualPage()),
-          );
-        } else {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => LearnDetailPage(title: title),
-            ),
-          );
-        }
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const UserManualPage()),
+        );
       },
-      child: TweenAnimationBuilder<double>(
-        duration: const Duration(milliseconds: 150),
-        tween: Tween(begin: 1.0, end: 1.0),
-        builder: (context, scale, child) => Transform.scale(
-          scale: scale,
-          child: child,
+      child: Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(maxWidth: 400),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1E3A8A), Color(0xFF14B8A6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
-              )
-            ],
-          ),
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.all(10),
-                child: Icon(icon, size: 30, color: color),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Colors.black87,
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(60),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.3),
+                  width: 2,
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                description,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.black54,
-                  height: 1.3,
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
+              child: const Icon(
+                Icons.menu_book,
+                size: 60,
+                color: Colors.white,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'User Manual',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 28,
+                color: Colors.white,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Complete step-by-step guide for using MGM Oversight. Learn everything you need to know about operating and maintaining your generator systems.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white,
+                height: 1.5,
+                fontWeight: FontWeight.w300,
+              ),
+            ),
+            const SizedBox(height: 32),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Read Manual',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_forward,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -236,59 +183,59 @@ class LearnDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.background,
         elevation: 0,
         title: Text(
           title,
-          style: const TextStyle(
-            color: Colors.black87,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onBackground,
             fontWeight: FontWeight.bold,
           ),
         ),
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onBackground),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Card(
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          elevation: 3,
-          shadowColor: Colors.black.withOpacity(0.1),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(18),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: ListView(
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF00B14F),
+                    color: Theme.of(context).colorScheme.tertiary,
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Detailed information about this topic will be displayed here. '
                       'This includes step-by-step guides, diagrams, and important safety information.',
                   style: TextStyle(
-                      fontSize: 15, color: Colors.black87, height: 1.5),
+                      fontSize: 15, color: Theme.of(context).colorScheme.onSecondary, height: 1.5),
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   'Key Points:',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: Theme.of(context).colorScheme.onBackground,
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text(
+                Text(
                   '• Point 1\n• Point 2\n• Point 3\n• Point 4',
                   style: TextStyle(
-                      fontSize: 15, color: Colors.black87, height: 1.6),
+                      fontSize: 15, color: Theme.of(context).colorScheme.onSecondary, height: 1.6),
                 ),
               ],
             ),

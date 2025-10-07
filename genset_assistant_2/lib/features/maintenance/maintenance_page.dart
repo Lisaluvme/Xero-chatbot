@@ -10,7 +10,8 @@ class MaintenancePage extends StatelessWidget {
         'title': 'Daily Checks',
         'description': 'Essential checks to perform every day.',
         'icon': Icons.today,
-        'color': Colors.green,
+        'color': const Color(0xFF4CAF50),
+        'gradient': const [Color(0xFF4CAF50), Color(0xFF66BB6A)],
         'pages': [
           {
             "text": "🔹 Check oil levels\nEnsure the oil level is within the marked range."
@@ -27,7 +28,8 @@ class MaintenancePage extends StatelessWidget {
         'title': 'Weekly Maintenance',
         'description': 'Maintenance tasks for weekly intervals.',
         'icon': Icons.calendar_view_week,
-        'color': Colors.blue,
+        'color': const Color(0xFF2196F3),
+        'gradient': const [Color(0xFF2196F3), Color(0xFF42A5F5)],
         'pages': [
           {
             "text": "🔹 Clean air filters\nRemove dust and dirt from the filters."
@@ -41,7 +43,8 @@ class MaintenancePage extends StatelessWidget {
         'title': 'Monthly Service',
         'description': 'Important monthly maintenance procedures.',
         'icon': Icons.calendar_month,
-        'color': Colors.orange,
+        'color': const Color(0xFFFF9800),
+        'gradient': const [Color(0xFFFF9800), Color(0xFFFFB74D)],
         'pages': [
           {
             "text": "🔹 Inspect electrical connections\nEnsure all wires are secure."
@@ -55,7 +58,8 @@ class MaintenancePage extends StatelessWidget {
         'title': 'Quarterly Inspection',
         'description': 'Comprehensive quarterly inspections.',
         'icon': Icons.calendar_today,
-        'color': Colors.purple,
+        'color': const Color(0xFF9C27B0),
+        'gradient': const [Color(0xFF9C27B0), Color(0xFFBA68C8)],
         'pages': [
           {
             "text": "🔹 Full system inspection\nPerform detailed check of all major systems."
@@ -66,7 +70,8 @@ class MaintenancePage extends StatelessWidget {
         'title': 'Annual Service',
         'description': 'Complete annual maintenance schedule.',
         'icon': Icons.event,
-        'color': Colors.red,
+        'color': const Color(0xFFF44336),
+        'gradient': const [Color(0xFFF44336), Color(0xFFEF5350)],
         'pages': [
           {
             "text": "🔹 Replace oil & filters\nDo a complete oil and filter replacement."
@@ -79,8 +84,9 @@ class MaintenancePage extends StatelessWidget {
       {
         'title': 'Emergency Procedures',
         'description': 'What to do in case of breakdowns.',
-        'icon': Icons.warning,
-        'color': Colors.red,
+        'icon': Icons.warning_amber,
+        'color': const Color(0xFFFF5722),
+        'gradient': const [Color(0xFFFF5722), Color(0xFFFF7043)],
         'pages': [
           {
             "text": "⚠️ In case of breakdown:\n1. Stop the generator immediately.\n2. Follow safety shutdown procedure.\n3. Contact maintenance team."
@@ -90,52 +96,160 @@ class MaintenancePage extends StatelessWidget {
     ];
 
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
-        title: const Text("Generator Maintenance"),
+        backgroundColor: Theme.of(context).colorScheme.background,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onBackground),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100.0), // Added bottom padding to avoid navigation bar overlap
-        children: sections.asMap().entries.map((entry) {
-          final index = entry.key;
-          final section = entry.value;
-          return Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            elevation: 4,
-            shadowColor: Colors.black.withOpacity(0.1),
-            margin: const EdgeInsets.only(bottom: 16),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              leading: Container(
-                decoration: BoxDecoration(
-                  color: (section['color'] as Color).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+      body: Container(
+        color: Theme.of(context).colorScheme.background,
+        child: Column(
+          children: [
+            // Header Section
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 80, 20, 40),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF1E3A8A), Color(0xFF14B8A6)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                padding: const EdgeInsets.all(8),
-                child: Icon(section['icon'] as IconData, size: 28, color: section['color'] as Color),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
               ),
-              title: Text(
-                section['title'] as String,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(section['description'] as String, style: const TextStyle(fontSize: 14)),
-              ),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => MaintenanceDetailPage(
-                      sections: sections,
-                      currentSectionIndex: index,
-                    ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.settings,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.onPrimary,
                   ),
-                );
-              },
+                  SizedBox(height: 16),
+                  Text(
+                    'Generator Maintenance',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Regular care for optimal performance',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
-          );
-        }).toList(),
+
+            // Maintenance Sections
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 100.0),
+                children: sections.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final section = entry.value;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (section['color'] as Color).withOpacity(0.15),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => MaintenanceDetailPage(
+                                sections: sections,
+                                currentSectionIndex: index,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF1E3A8A), Color(0xFF14B8A6)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Icon(
+                                  section['icon'] as IconData,
+                                  size: 28,
+                                  color: Theme.of(context).colorScheme.onPrimary,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      section['title'] as String,
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context).colorScheme.onSurface,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      section['description'] as String,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Theme.of(context).colorScheme.onSecondary,
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.arrow_forward_ios,
+                                color: Theme.of(context).colorScheme.tertiary,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -182,7 +296,7 @@ class _MaintenanceDetailPageState extends State<MaintenanceDetailPage> {
           width: isActive ? 12 : 8,
           height: isActive ? 12 : 8,
           decoration: BoxDecoration(
-            color: isActive ? Colors.blue : Colors.grey[300],
+            color: isActive ? Theme.of(context).colorScheme.tertiary : Theme.of(context).colorScheme.onSecondary,
             shape: BoxShape.circle,
           ),
         );
@@ -195,7 +309,10 @@ class _MaintenanceDetailPageState extends State<MaintenanceDetailPage> {
     final pages = widget.sections[widget.currentSectionIndex]['pages'] as List<Map<String, dynamic>>;
 
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.background,
+        foregroundColor: Theme.of(context).colorScheme.onBackground,
         title: Text(widget.sections[widget.currentSectionIndex]['title'] as String),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -221,7 +338,11 @@ class _MaintenanceDetailPageState extends State<MaintenanceDetailPage> {
                   child: SingleChildScrollView(
                     child: Text(
                       text,
-                      style: const TextStyle(fontSize: 16, height: 1.6),
+                      style: TextStyle(
+                        fontSize: 16,
+                        height: 1.6,
+                        color: Theme.of(context).colorScheme.onSecondary,
+                      ),
                     ),
                   ),
                 );
@@ -233,13 +354,21 @@ class _MaintenanceDetailPageState extends State<MaintenanceDetailPage> {
           const SizedBox(height: 8),
           Text(
             "Page ${_currentIndex + 1} of ${pages.length}",
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: Theme.of(context).colorScheme.onBackground,
+            ),
           ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.tertiary,
+                  foregroundColor: Theme.of(context).colorScheme.onTertiary,
+                ),
                 onPressed: _currentIndex > 0
                     ? () => _pageController.previousPage(
                   duration: const Duration(milliseconds: 300),
@@ -249,6 +378,10 @@ class _MaintenanceDetailPageState extends State<MaintenanceDetailPage> {
                 child: const Text('Previous'),
               ),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.tertiary,
+                  foregroundColor: Theme.of(context).colorScheme.onTertiary,
+                ),
                 onPressed: _currentIndex < pages.length - 1
                     ? () => _pageController.nextPage(
                   duration: const Duration(milliseconds: 300),
@@ -262,7 +395,7 @@ class _MaintenanceDetailPageState extends State<MaintenanceDetailPage> {
           const SizedBox(height: 80), // Added bottom padding to avoid navigation bar overlap
         ],
       )
-          : const Center(child: Text("No content available")),
+          : Center(child: Text("No content available", style: TextStyle(color: Theme.of(context).colorScheme.onSecondary))),
     );
   }
 }

@@ -1,47 +1,84 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/generator_model.dart';
+import '../models/genset_model.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://api.gensetassistant.com'; // Replace with actual API URL
+
+  static const String baseUrl = 'https://mirrorapi.netlify.app';
+
 
   Future<GeneratorStatus> getGeneratorStatus() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/generator/status'));
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      final response = await http.get(
+        Uri.parse('$baseUrl/genset'),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+      );
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
-        return GeneratorStatus.fromJson(jsonData);
+
+
+        if (jsonData is Map<String, dynamic>) {
+          return GeneratorStatus.fromJson(jsonData);
+        } else if (jsonData is List && jsonData.isNotEmpty) {
+          return GeneratorStatus.fromJson(jsonData[0]);
+        } else {
+          throw Exception('No generator data available');
+        }
       } else {
         throw Exception('Failed to load generator status');
       }
     } catch (e) {
-      // For demo purposes, return mock data if API is not available
-      return _getMockGeneratorStatus();
+      print('Error fetching generator status: $e');
+      rethrow;
     }
   }
 
+
   Future<List<ServiceRecordModel>> getServiceRecords() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/service-records'));
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+      final response = await http.get(
+        Uri.parse('$baseUrl/service-records'),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+      );
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body) as List;
-        return jsonData.map((item) => ServiceRecordModel.fromJson(item)).toList();
+        return jsonData
+            .map((item) => ServiceRecordModel.fromJson(item))
+            .toList();
       } else {
         throw Exception('Failed to load service records');
       }
     } catch (e) {
-      // Return empty list if API is not available
+      print('Error fetching service records: $e');
       return [];
     }
   }
 
+
   Future<void> saveServiceRecord(ServiceRecordModel record) async {
     try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
       final response = await http.post(
         Uri.parse('$baseUrl/service-records'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
         body: json.encode(record.toJson()),
       );
 
@@ -49,22 +86,32 @@ class ApiService {
         throw Exception('Failed to save service record');
       }
     } catch (e) {
-      // For demo purposes, just print the error
       print('Error saving service record: $e');
     }
   }
 
-  // Mock data for demonstration
-  GeneratorStatus _getMockGeneratorStatus() {
-    return GeneratorStatus(
-      isRunning: true,
-      location: 'Main Building - Generator Room',
-      runHours: 1247,
-      fuelLevel: 75,
-      batteryVoltage: 12.6,
-      temperature: 72,
-      oilPressure: 35,
-      faults: ['Low coolant level'], // Empty list for no faults
-    );
+  Future<List<Genset>> getGensetList(String utoken) async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://www.smartgencloudplus.com/yewu/third/genset/list?utoken=$utoken&page=1&per_page=10'),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        // Assuming the response has a 'data' field with list of gensets
+        if (jsonData['data'] is List) {
+          return (jsonData['data'] as List)
+              .map((item) => Genset.fromJson(item))
+              .toList();
+        } else {
+          throw Exception('Invalid response format');
+        }
+      } else {
+        throw Exception('Failed to load genset list');
+      }
+    } catch (e) {
+      print('Error fetching genset list: $e');
+      return [];
+    }
   }
 }
