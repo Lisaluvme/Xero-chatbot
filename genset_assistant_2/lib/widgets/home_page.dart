@@ -1,0 +1,1130 @@
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import '../features/learn/learn_page.dart';
+import '../features/maintenance/maintenance_page.dart';
+import '../features/troubleshooting/troubleshooting_page.dart';
+import '../features/service_records/service_records_page.dart';
+import '../features/live_status/live_status_page.dart';
+import '../features/contact/contact_page.dart';
+import 'news_detail_page.dart';
+import '../features/ai_chat/ai_chat_page.dart';
+import '../features/products/products_page.dart';
+import '../features/products/product_details_page.dart';
+import '../services/firestore_service.dart';
+import '../services/api_service.dart';
+import '../services/wordpress_service.dart';
+import '../models/genset_model.dart';
+
+
+class HomePageWidget extends StatefulWidget {
+  const HomePageWidget({super.key});
+
+  @override
+  State<HomePageWidget> createState() => _HomePageWidgetState();
+}
+
+class _HomePageWidgetState extends State<HomePageWidget> {
+  List<dynamic> posts = [];
+  bool isLoading = true;
+  String errorMessage = '';
+  List<Genset> gensets = [];
+  bool gensetLoading = false;
+  List<Map<String, dynamic>> popularProducts = [];
+  bool popularProductsLoading = true;
+  String popularProductsError = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  final List<Map<String, dynamic>> serviceItems = const [
+    {'icon': Icons.shopping_cart, 'label': 'Buy Genset', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
+    {'icon': Icons.book, 'label': 'Instructions', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
+    {'icon': Icons.build_circle, 'label': 'Fix Issues', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
+    {'icon': Icons.engineering, 'label': 'Service', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
+    {'icon': Icons.cable, 'label': 'Installation', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
+    {'icon': Icons.chat, 'label': 'Contact Us', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
+    {'icon': Icons.monitor, 'label': 'Monitor', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchPosts();
+    fetchGensets();
+    fetchPopularProducts();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _sendSearchMessage() {
+    if (_searchController.text.isNotEmpty) {
+      // Navigate to AI Chat page with the message
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AiChatPage(initialMessage: _searchController.text),
+        ),
+      );
+      _searchController.clear();
+    }
+  }
+
+  Future<void> fetchPosts() async {
+    try {
+      final response = await http.get(Uri.parse(
+          'https://genset.com.my/wp-json/wp/v2/posts?_embed&per_page=5'));
+      if (response.statusCode == 200) {
+        setState(() {
+          posts = json.decode(response.body);
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = 'Failed to load news: ${response.statusCode}';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Error loading news: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> fetchGensets() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() => gensetLoading = true);
+    try {
+      final firestoreService = FirestoreService();
+      final utoken = await firestoreService.getUtoken(user.uid);
+      if (utoken != null) {
+        final apiService = ApiService();
+        final fetchedGensets = await apiService.getGensetList(utoken);
+        setState(() {
+          gensets = fetchedGensets;
+          gensetLoading = false;
+        });
+      } else {
+        setState(() => gensetLoading = false);
+      }
+    } catch (e) {
+      print('Error fetching gensets: $e');
+      setState(() => gensetLoading = false);
+    }
+  }
+
+  Future<void> fetchPopularProducts() async {
+    try {
+      // Fetch all products first, then filter for specific popular ones
+      final allProducts = await WordPressService.fetchProducts();
+
+      // Find specific products in order of preference
+      final targetProducts = [
+        '30kVA MGM Compact Generator Mark 5',
+        '60kVA MGM Premium Generator',
+        '100kVA MGM Premium Generator'
+      ];
+
+      final selectedProducts = <Map<String, dynamic>>[];
+
+      // Find each target product
+      for (final targetName in targetProducts) {
+        try {
+          final foundProduct = allProducts.firstWhere(
+            (product) {
+              final productName = (product['name'] ?? '').toString().toLowerCase();
+              return productName.contains(targetName.toLowerCase()) ||
+                     targetName.toLowerCase().contains(productName);
+            },
+          );
+          selectedProducts.add(foundProduct);
+        } catch (e) {
+          // Product not found, continue to next one
+          continue;
+        }
+      }
+
+      // If we don't have 3 products, fill with other products
+      if (selectedProducts.length < 3) {
+        final remainingProducts = allProducts.where((product) =>
+          !selectedProducts.any((selected) => selected['id'] == product['id'])
+        ).take(3 - selectedProducts.length);
+
+        selectedProducts.addAll(remainingProducts);
+      }
+
+      if (mounted) {
+        setState(() {
+          popularProducts = selectedProducts.take(3).toList(); // Ensure max 3 products
+          popularProductsLoading = false;
+          popularProductsError = '';
+        });
+      }
+    } catch (e) {
+      print('Error fetching popular products: $e');
+      if (mounted) {
+        setState(() {
+          popularProductsLoading = false;
+          popularProductsError = 'Failed to load popular products';
+        });
+      }
+    }
+  }
+
+  /// 美化登录弹窗
+  void _showLoginDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        final user = FirebaseAuth.instance.currentUser;
+
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (user == null) ...[
+                const Text(
+                  "Login to continue",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFFFFFFF)),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                  ),
+                  icon: const Icon(Icons.login),
+                  label: const Text("Login with Google"),
+                  onPressed: () async {
+                    final GoogleSignIn googleSignIn = GoogleSignIn();
+                    final GoogleSignInAccount? googleUser =
+                    await googleSignIn.signIn();
+                    if (googleUser != null) {
+                      final GoogleSignInAuthentication googleAuth =
+                      await googleUser.authentication;
+                      final AuthCredential credential =
+                      GoogleAuthProvider.credential(
+                        accessToken: googleAuth.accessToken,
+                        idToken: googleAuth.idToken,
+                      );
+                      await FirebaseAuth.instance
+                          .signInWithCredential(credential);
+                      Navigator.pop(context);
+                      setState(() {});
+                      fetchGensets();
+                    }
+                  },
+                ),
+              ] else ...[
+                CircleAvatar(
+                  backgroundImage: NetworkImage(user.photoURL ?? ""),
+                  radius: 40,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  user.displayName ?? "No Name",
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFFFFFFF)),
+                ),
+                Text(
+                  user.email ?? "",
+                  style: const TextStyle(color: Color(0xFFB3B3B3)),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                    foregroundColor: Theme.of(context).colorScheme.onError,
+                  ),
+                  icon: const Icon(Icons.logout),
+                  label: const Text("Logout"),
+                  onPressed: () async {
+                    await FirebaseAuth.instance.signOut();
+                    await GoogleSignIn().signOut();
+                    Navigator.pop(context);
+                    setState(() {});
+                  },
+                ),
+              ]
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewPadding.bottom + 160), // Increased padding for navigation bar
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF1E3A8A), Color(0xFF14B8A6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: TextField(
+                              controller: _searchController,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: const InputDecoration(
+                                hintText: 'Type a message...',
+                                hintStyle: TextStyle(color: Colors.white70),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              ),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: _sendSearchMessage,
+                          icon: const Icon(Icons.send, color: Colors.white),
+                        ),
+                        IconButton(
+                          onPressed: () => _showLoginDialog(context),
+                          icon: const Icon(Icons.account_circle,
+                              color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+
+
+              // Services Grid
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate:
+                  const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: serviceItems.length,
+                  itemBuilder: (context, index) {
+                    final item = serviceItems[index];
+                    return GestureDetector(
+                      onTap: () => _onServiceItemTap(context, index),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 55,
+                            height: 55,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: item['gradient'] as List<Color>,
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (item['color'] as Color).withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              item['icon'],
+                              color: Colors.white,
+                              size: 26,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Flexible(
+                            child: Text(
+                              item['label'],
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF0F172A), // Text Color
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+
+
+              // Popular Products Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Popular Products',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F172A), // Text Color
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ProductsScreen(initialCategory: 0),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'See All',
+                            style: TextStyle(
+                              color: Color(0xFF38BDF8), // Highlight Color
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (popularProductsLoading)
+                      const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF2563EB),
+                        ),
+                      )
+                    else if (popularProductsError.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.warning, color: Colors.orange.shade700),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Unable to load popular products',
+                                    style: TextStyle(
+                                      color: Colors.orange.shade700,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Showing cached data. Tap to retry.',
+                                    style: TextStyle(
+                                      color: Colors.orange.shade600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: fetchPopularProducts,
+                              icon: Icon(Icons.refresh, color: Colors.orange.shade700),
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (popularProducts.isEmpty)
+                      const Center(
+                        child: Text(
+                          'No popular products available',
+                          style: TextStyle(color: Color(0xFFB3B3B3)),
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        height: 180,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: popularProducts.length,
+                          itemBuilder: (context, index) {
+                            return _buildPopularProductItem(popularProducts[index]);
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Latest News
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Latest News',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F172A), // Text Color
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (isLoading) const Center(child: CircularProgressIndicator()),
+                    if (errorMessage.isNotEmpty)
+                      Center(
+                        child: Text(
+                          errorMessage,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    if (posts.isEmpty && !isLoading && errorMessage.isEmpty)
+                      const Center(child: Text('No news available')),
+                    if (!isLoading && errorMessage.isEmpty && posts.isNotEmpty)
+                      SizedBox(
+                        height: 250,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: posts.length,
+                          itemBuilder: (context, index) {
+                            return _buildNewsItem(posts[index]);
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _onServiceItemTap(BuildContext context, int index) {
+    switch (index) {
+      case 0:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => const ProductsScreen(initialCategory: 0)),
+        );
+        break;
+      case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const LearnPage()),
+        );
+        break;
+      case 2:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const TroubleshootingPage()),
+        );
+        break;
+      case 3:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const MaintenancePage()),
+        );
+        break;
+      case 4:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ContactPage()),
+        );
+        break;
+      case 5:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const LiveStatusPage()),
+        );
+        break;
+    }
+  }
+
+  Widget _buildActivityItem(
+      String title, String time, IconData icon, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                ),
+                Text(
+                  time,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.arrow_forward_ios,
+            size: 16,
+            color: Colors.black38,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNewsItem(dynamic post) {
+    String title = post['title']['rendered'] ?? 'No Title';
+    String excerpt = post['excerpt']['rendered'] ?? '';
+    excerpt = excerpt.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+    String date = post['date'] ?? '';
+    if (date.isNotEmpty) {
+      date = DateTime.parse(date).toLocal().toString().split(' ')[0];
+    }
+
+    String imageUrl = '';
+    if (post['_embedded'] != null &&
+        post['_embedded']['wp:featuredmedia'] != null &&
+        post['_embedded']['wp:featuredmedia'].isNotEmpty) {
+      imageUrl = post['_embedded']['wp:featuredmedia'][0]['source_url'] ?? '';
+    }
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => NewsDetailPage(post: post)),
+        );
+      },
+      child: SizedBox(
+        width: 280,
+        height: 200,
+        child: Container(
+          margin: const EdgeInsets.only(right: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2C2C2C),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (imageUrl.isNotEmpty)
+                ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                  child: Image.network(
+                    imageUrl,
+                    height: 100,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox.shrink(),
+                  ),
+                ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFFFFFFF),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: Text(
+                          excerpt,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFFB3B3B3),
+                            height: 1.4,
+                          ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Text(
+                            date,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFFB3B3B3),
+                            ),
+                          ),
+                          const Spacer(),
+                          Icon(
+                            Icons.arrow_forward,
+                            size: 16,
+                            color: Theme.of(context).colorScheme.tertiary,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPopularProductItem(Map<String, dynamic> product) {
+    // Handle different data structures from API vs hardcoded data
+    String name = product['name'] ?? product['title']?['rendered'] ?? 'Unknown Product';
+    String description = product['description'] ?? product['excerpt']?['rendered'] ?? '';
+    // Remove HTML tags from description
+    description = description.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+
+    // Follow WooCommerce pricing structure
+    String price = _formatWooCommercePrice(product);
+
+    // Handle image - WooCommerce API structure
+    String? imageUrl;
+    try {
+      final imagesData = product['images'];
+      if (imagesData is List && imagesData.isNotEmpty) {
+        final firstImage = imagesData[0];
+        if (firstImage is Map<String, dynamic>) {
+          imageUrl = firstImage['src'] as String?;
+        }
+      } else if (imagesData is Map<String, dynamic>) {
+        imageUrl = imagesData['src'] as String?;
+      }
+
+      // Fallback to single image field
+      if (imageUrl == null || imageUrl.isEmpty) {
+        final singleImage = product['image'];
+        if (singleImage is String && singleImage.startsWith('http')) {
+          imageUrl = singleImage;
+        } else if (singleImage is Map<String, dynamic>) {
+          imageUrl = singleImage['src'] as String?;
+        }
+      }
+    } catch (e) {
+      print('Error parsing product image: $e');
+    }
+
+    Widget imageWidget;
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      // Network image from WooCommerce API
+      imageWidget = ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+        child: Image.network(
+          imageUrl,
+          fit: BoxFit.cover,
+          height: 120,
+          width: double.infinity,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              height: 120,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F4F6),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              child: const Icon(
+                Icons.electrical_services,
+                size: 40,
+                color: Color(0xFF6B7280),
+              ),
+            );
+          },
+        ),
+      );
+    } else if (product['image'] is String && (product['image'] as String).startsWith('assets/')) {
+      // Asset image from hardcoded fallback data
+      imageWidget = ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+        child: Image.asset(
+          product['image'] as String,
+          fit: BoxFit.cover,
+          height: 120,
+          width: double.infinity,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              height: 120,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F4F6),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              child: const Icon(
+                Icons.electrical_services,
+                size: 40,
+                color: Color(0xFF6B7280),
+              ),
+            );
+          },
+        ),
+      );
+    } else {
+      // Icon fallback
+      imageWidget = Container(
+        height: 120,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F4F6),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(16),
+            topRight: Radius.circular(16),
+          ),
+        ),
+        child: const Icon(
+          Icons.electrical_services,
+          size: 40,
+          color: Color(0xFF6B7280),
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailsPage(product: product),
+          ),
+        );
+      },
+      child: Container(
+        width: 140,
+        height: 180,
+        margin: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1E3A8A).withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Product Image
+            SizedBox(
+              height: 100,
+              width: double.infinity,
+              child: imageWidget,
+            ),
+
+            // Product Details
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF111827), // Text Primary
+                        height: 1.2,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const Spacer(),
+                    Text(
+                      price,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E3A8A), // Primary Color
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Format price according to WooCommerce structure
+  String _formatWooCommercePrice(Map<String, dynamic> product) {
+    // WooCommerce pricing hierarchy:
+    // 1. sale_price (if on sale)
+    // 2. price (current price)
+    // 3. regular_price (regular price)
+    // 4. Fallback to hardcoded or contact
+
+    String? salePrice = product['sale_price'];
+    String? currentPrice = product['price'];
+    String? regularPrice = product['regular_price'];
+
+    // If there's a sale price and it's different from regular price, show sale price
+    if (salePrice != null && salePrice.isNotEmpty && salePrice != '0' && salePrice != regularPrice) {
+      return 'RM $salePrice';
+    }
+
+    // Otherwise use current price or regular price
+    String price = currentPrice ?? regularPrice ?? product['price'] ?? 'Contact for price';
+
+    // Format the price with RM prefix if it's not already formatted
+    if (price != 'Contact for price' && !price.startsWith('RM') && !price.startsWith('\$')) {
+      price = 'RM $price';
+    }
+
+    return price;
+  }
+
+  Widget _buildProductItem(Map<String, dynamic> product) {
+    String name = product['name'] ?? product['title']?['rendered'] ?? 'Unknown Product';
+    String description = product['description'] ?? product['short_description'] ?? '';
+    description = description.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+    String price = product['price'] ?? product['regular_price'] ?? 'Contact for price';
+    if (price != 'Contact for price' && !price.startsWith('RM')) {
+      price = 'RM $price';
+    }
+
+    String imageUrl = '';
+    if (product['images'] != null && product['images'].isNotEmpty) {
+      imageUrl = product['images'][0]['src'] ?? '';
+    } else if (product['_embedded'] != null &&
+        product['_embedded']['wp:featuredmedia'] != null &&
+        product['_embedded']['wp:featuredmedia'].isNotEmpty) {
+      imageUrl = product['_embedded']['wp:featuredmedia'][0]['source_url'] ?? '';
+    }
+
+    return GestureDetector(
+      onTap: () {
+        // Navigate to Products page for now since there's no product detail page
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const ProductsScreen(initialCategory: 0),
+          ),
+        );
+      },
+      child: SizedBox(
+        width: 160,
+        height: 200,
+        child: Container(
+          margin: const EdgeInsets.only(right: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Product Image
+              Container(
+                height: 100,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12),
+                  ),
+                ),
+                child: imageUrl.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                          topRight: Radius.circular(12),
+                        ),
+                        child: Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            Icons.electrical_services,
+                            size: 40,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      )
+                    : Icon(
+                        Icons.electrical_services,
+                        size: 40,
+                        color: Colors.grey,
+                      ),
+              ),
+
+              // Product Details
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        description,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black54,
+                          height: 1.2,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const Spacer(),
+                      Text(
+                        price,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF7B1FA2),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
