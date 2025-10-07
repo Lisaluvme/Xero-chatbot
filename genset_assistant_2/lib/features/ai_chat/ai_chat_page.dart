@@ -12,6 +12,7 @@ import 'dart:io';
 import '../../services/knowledge_base_service.dart';
 import '../../services/wordpress_service.dart' as deepseek_service;
 import '../../services/firestore_service.dart';
+import '../../main.dart';
 
 class AiChatPage extends StatefulWidget {
   final String? initialMessage;
@@ -29,6 +30,7 @@ class _AiChatPageState extends State<AiChatPage> {
   bool _isLoading = true;
   bool _isListening = false;
   bool _isSpeaking = false;
+  bool _showHomeShortcut = false;
 
   late stt.SpeechToText _speech;
   late FlutterTts _flutterTts;
@@ -155,7 +157,9 @@ class _AiChatPageState extends State<AiChatPage> {
       String userMessage = _controller.text.trim();
       _addMessage(userMessage, true);
       _controller.clear();
-      setState(() {}); // 刷新按钮状态
+      setState(() {
+        _showHomeShortcut = true; // Show home shortcut after sending first message
+      }); // 刷新按钮状态
 
       // Auto-detect language from user message
       String detectedLanguage = _detectLanguage(userMessage);
@@ -746,6 +750,18 @@ class _AiChatPageState extends State<AiChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: _showHomeShortcut ? FloatingActionButton(
+        onPressed: () {
+          // Navigate back to home page (first tab in bottom navigation)
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const HomePage()),
+            (route) => false,
+          );
+        },
+        backgroundColor: const Color(0xFF1E3A8A), // Primary blue
+        child: const Icon(Icons.home, color: Colors.white),
+        tooltip: 'Back to Home',
+      ) : null,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
