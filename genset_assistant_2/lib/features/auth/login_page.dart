@@ -286,9 +286,10 @@ class _LoginPageState extends State<LoginPage> {
               // Subtitle
               Text(
                 'Sign in to continue',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
-                  color: Theme.of(context).colorScheme.onSecondary,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF333333),
                 ),
                 textAlign: TextAlign.center,
               ),
