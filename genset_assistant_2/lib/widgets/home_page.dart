@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../features/learn/learn_page.dart';
 import '../features/maintenance/maintenance_page.dart';
 import '../features/troubleshooting/troubleshooting_page.dart';
@@ -16,7 +17,9 @@ import '../features/products/product_details_page.dart';
 import '../services/firestore_service.dart';
 import '../services/api_service.dart';
 import '../services/wordpress_service.dart';
+import '../services/mirror_api_service.dart';
 import '../models/genset_model.dart';
+import '../models/mirror_genset_model.dart';
 
 
 class HomePageWidget extends StatefulWidget {
@@ -32,6 +35,9 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   String errorMessage = '';
   List<Genset> gensets = [];
   bool gensetLoading = false;
+  List<MirrorGenset> mirrorGensets = [];
+  bool mirrorGensetLoading = false;
+  String mirrorGensetError = '';
   List<Map<String, dynamic>> popularProducts = [];
   bool popularProductsLoading = true;
   String popularProductsError = '';
@@ -45,6 +51,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     {'icon': Icons.cable, 'label': 'Installation', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
     {'icon': Icons.chat, 'label': 'Contact Us', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
     {'icon': Icons.monitor, 'label': 'Monitor', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
+    {'icon': Icons.message, 'label': 'WhatsApp', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
   ];
 
   @override
@@ -52,6 +59,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     super.initState();
     fetchPosts();
     fetchGensets();
+    fetchMirrorGensets();
     fetchPopularProducts();
   }
 
@@ -118,6 +126,39 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     } catch (e) {
       print('Error fetching gensets: $e');
       setState(() => gensetLoading = false);
+    }
+  }
+
+  Future<void> fetchMirrorGensets() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() => mirrorGensetLoading = true);
+    try {
+      final response = await MirrorApiService.syncAfterLogin();
+      if (response.success && response.gensetData != null) {
+        setState(() {
+          mirrorGensets = response.gensetData!;
+          mirrorGensetLoading = false;
+          mirrorGensetError = '';
+        });
+      } else if (response.message.contains('No UToken found')) {
+        setState(() {
+          mirrorGensetError = 'No UToken found. Please contact your administrator to get access to genset data.';
+          mirrorGensetLoading = false;
+        });
+      } else {
+        setState(() {
+          mirrorGensetError = response.message;
+          mirrorGensetLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching mirror gensets: $e');
+      setState(() {
+        mirrorGensetError = 'Failed to load genset data';
+        mirrorGensetLoading = false;
+      });
     }
   }
 
@@ -513,6 +554,121 @@ class _HomePageWidgetState extends State<HomePageWidget> {
 
               const SizedBox(height: 24),
 
+              // Mirror Gensets Section (only show if user is logged in)
+              if (FirebaseAuth.instance.currentUser != null) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'My Gensets',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0F172A), // Text Color
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: fetchMirrorGensets,
+                            child: const Text(
+                              'Refresh',
+                              style: TextStyle(
+                                color: Color(0xFF38BDF8), // Highlight Color
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (mirrorGensetLoading)
+                        const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF2563EB),
+                          ),
+                        )
+                      else if (mirrorGensetError.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.orange.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.warning, color: Colors.orange.shade700),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Access Required',
+                                      style: TextStyle(
+                                        color: Colors.orange.shade700,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      mirrorGensetError,
+                                      style: TextStyle(
+                                        color: Colors.orange.shade600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else if (mirrorGensets.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.blue.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info, color: Colors.blue.shade700),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'No genset data available. Please contact your administrator.',
+                                  style: TextStyle(
+                                    color: Colors.blue.shade700,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        SizedBox(
+                          height: 200,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: mirrorGensets.length,
+                            itemBuilder: (context, index) {
+                              return _buildMirrorGensetItem(mirrorGensets[index]);
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+
               // Latest News
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -598,6 +754,35 @@ class _HomePageWidgetState extends State<HomePageWidget> {
           MaterialPageRoute(builder: (context) => const LiveStatusPage()),
         );
         break;
+      case 7:
+        // WhatsApp quick action
+        _launchWhatsApp();
+        break;
+    }
+  }
+
+  Future<void> _launchWhatsApp() async {
+    const String phoneNumber = '+60129689816';
+    const String message = 'Hello from Genset Assistant';
+    final String whatsappUrl = 'https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}';
+    final Uri uri = Uri.parse(whatsappUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      // Fallback: try to open WhatsApp directly
+      final String fallbackUrl = 'whatsapp://send?phone=$phoneNumber&text=${Uri.encodeComponent(message)}';
+      final Uri fallbackUri = Uri.parse(fallbackUrl);
+      if (await canLaunchUrl(fallbackUri)) {
+        await launchUrl(fallbackUri, mode: LaunchMode.externalApplication);
+      } else {
+        // Show error message if WhatsApp is not installed
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('WhatsApp is not installed on this device'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -1124,6 +1309,142 @@ class _HomePageWidgetState extends State<HomePageWidget> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMirrorGensetItem(MirrorGenset genset) {
+    // Determine status color
+    Color statusColor;
+    if (genset.statusName.toLowerCase().contains('running') ||
+        genset.statusName.toLowerCase().contains('online')) {
+      statusColor = Colors.green;
+    } else if (genset.statusName.toLowerCase().contains('alarm') ||
+               genset.statusName.toLowerCase().contains('error')) {
+      statusColor = Colors.red;
+    } else if (genset.statusName.toLowerCase().contains('standby') ||
+               genset.statusName.toLowerCase().contains('off')) {
+      statusColor = Colors.orange;
+    } else {
+      statusColor = Colors.blue;
+    }
+
+    return Container(
+      width: 200,
+      height: 180,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1E3A8A).withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with icon and status
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: statusColor.withOpacity(0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.electrical_services,
+                  color: statusColor,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    genset.gsname,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: statusColor,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Genset Details
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Module: ${genset.modulename}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF6B7280),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Status: ${genset.statusName}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: statusColor,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Total Time: ${genset.totaltime}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF6B7280),
+                    ),
+                  ),
+                  Text(
+                    'Day Time: ${genset.daytime}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF6B7280),
+                    ),
+                  ),
+                  if (genset.alarmList.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Text(
+                        '${genset.alarmList.length} Alarm${genset.alarmList.length > 1 ? 's' : ''}',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.red,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

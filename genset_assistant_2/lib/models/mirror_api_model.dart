@@ -1,3 +1,5 @@
+import 'mirror_genset_model.dart';
+
 class MirrorApiResponse {
   final String status;
   final String message;
@@ -54,6 +56,36 @@ class MirrorUserData {
       'email': email,
       'mirrorId': mirrorId,
       'createdAt': createdAt?.toIso8601String(),
+    };
+  }
+}
+
+class MirrorSyncResponse {
+  final bool success;
+  final String message;
+  final List<MirrorGenset>? gensetData;
+
+  MirrorSyncResponse({
+    required this.success,
+    required this.message,
+    this.gensetData,
+  });
+
+  factory MirrorSyncResponse.fromJson(Map<String, dynamic> json) {
+    return MirrorSyncResponse(
+      success: json['success'] ?? false,
+      message: json['message'] ?? '',
+      gensetData: json['gensetData'] != null
+          ? (json['gensetData'] as List).map((item) => MirrorGenset.fromJson(item)).toList()
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'success': success,
+      'message': message,
+      'gensetData': gensetData?.map((item) => item.toJson()).toList(),
     };
   }
 }

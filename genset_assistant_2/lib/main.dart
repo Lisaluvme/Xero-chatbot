@@ -13,6 +13,7 @@ import 'features/ai_chat/ai_chat_page.dart';
 import 'features/auth/login_page.dart';
 import 'services/notification_service.dart';
 import 'widgets/home_page.dart' show HomePageWidget;
+import 'models/mirror_genset_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

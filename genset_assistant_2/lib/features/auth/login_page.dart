@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import '../../services/firestore_service.dart';
 import '../../services/mirror_api_service.dart';
+import '../../models/mirror_api_model.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -46,10 +47,8 @@ class _LoginPageState extends State<LoginPage> {
 
       final User? user = userCredential.user;
       if (user != null) {
-        // Call Mirror API after successful login
-        await _callMirrorApi(user.uid, user.email ?? '');
-        // Link Gmail with Mirror API
-        await _linkGmail();
+        // Sync with Mirror API after successful login
+        await _syncWithMirrorApi();
       }
 
       // Navigation will be handled by auth state listener in main.dart
@@ -122,10 +121,8 @@ class _LoginPageState extends State<LoginPage> {
           defaultUtoken,
         );
 
-        // Call Mirror API after successful login
-        await _callMirrorApi(user.uid, user.email ?? '');
-        // Link Gmail with Mirror API
-        await _linkGmail();
+        // Sync with Mirror API after successful login
+        await _syncWithMirrorApi();
       }
 
       // Navigation will be handled by auth state listener in main.dart
@@ -142,102 +139,131 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  /// Call Mirror API and display response
-  Future<void> _callMirrorApi(String uid, String email) async {
+  /// Sync with Mirror API after login and handle response
+  Future<void> _syncWithMirrorApi() async {
     try {
-      print('Calling Mirror API for user: $uid, email: $email');
+      print('Syncing with Mirror API after login');
 
-      final response = await MirrorApiService.sendUserData(
-        uid: uid,
-        email: email,
-      );
+      final response = await MirrorApiService.syncAfterLogin();
 
-      print('Mirror API Response: ${response.status} - ${response.message}');
+      print('Mirror API Sync Response: ${response.success} - ${response.message}');
 
       // Show response in a dialog
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text(
-                response.status == 'success' ? '✅ Mirror API Success' : '❌ Mirror API Error',
-                style: TextStyle(
-                  color: response.status == 'success' ? Colors.green : Colors.red,
+        if (response.gensetData != null && response.gensetData!.isNotEmpty) {
+          // Display genset data
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text(
+                  '✅ Genset Data Retrieved',
+                  style: TextStyle(color: Colors.green),
                 ),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Message: ${response.message}'),
-                  if (response.data != null) ...[
-                    const SizedBox(height: 8),
-                    Text('User ID: ${response.data!.uid}'),
-                    Text('Email: ${response.data!.email}'),
-                    if (response.data!.mirrorId != null)
-                      Text('Mirror ID: ${response.data!.mirrorId}'),
-                    if (response.data!.createdAt != null)
-                      Text('Created: ${response.data!.createdAt.toString()}'),
-                  ],
+                content: SizedBox(
+                  width: double.maxFinite,
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: response.gensetData!.length,
+                    itemBuilder: (context, index) {
+                      final genset = response.gensetData![index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Genset: ${genset.gsname}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text('Module: ${genset.modulename}'),
+                              Text('Status: ${genset.statusName}'),
+                              Text('Total Time: ${genset.totaltime}'),
+                              Text('Day Time: ${genset.daytime}'),
+                              if (genset.alarmList.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Alarms: ${genset.alarmList.join(", ")}',
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('OK'),
+                  ),
                 ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('OK'),
+              );
+            },
+          );
+        } else if (response.message.contains('No UToken found')) {
+          // Display "No UToken found" message
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text(
+                  '⚠️ Access Required',
+                  style: TextStyle(color: Colors.orange),
                 ),
-              ],
-            );
-          },
-        );
+                content: const Text(
+                  'No UToken found. Please contact your administrator to get access to genset data.',
+                  style: TextStyle(fontSize: 16),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            },
+          );
+        } else {
+          // Display other messages
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text(
+                  response.success ? '✅ Success' : '❌ Error',
+                  style: TextStyle(
+                    color: response.success ? Colors.green : Colors.red,
+                  ),
+                ),
+                content: Text(response.message),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            },
+          );
+        }
       }
     } catch (e) {
-      print('Error calling Mirror API: $e');
+      print('Error syncing with Mirror API: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Mirror API Error: $e'),
+            content: Text('Mirror API Sync Error: $e'),
             backgroundColor: Colors.red,
           ),
-        );
-      }
-    }
-  }
-
-  /// Link Gmail with Mirror API
-  Future<void> _linkGmail() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final gmail = user.email;
-      final idToken = await user.getIdToken();
-
-      final response = await http.post(
-        Uri.parse('https://mirrorapi.netlify.app/api/link'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $idToken',
-        },
-        body: jsonEncode({'gmail': gmail}),
-      );
-
-      if (response.statusCode == 200) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text("Linked Successfully!"),
-            content: const Text("Your genset has been linked to your account."),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("OK"),
-              ),
-            ],
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("⚠️ Unable to sync Gmail link.")),
         );
       }
     }
