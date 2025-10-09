@@ -2,7 +2,7 @@ name: genset_assistant_2
 description: A Flutter application to assist users in learning about, maintaining, and troubleshooting generators.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ">=2.17.0 <3.0.0"
