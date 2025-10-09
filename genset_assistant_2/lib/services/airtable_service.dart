@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AirtableService {
-  // Airtable configuration - these should be moved to environment variables
-  static const String _baseId = 'YOUR_AIRTABLE_BASE_ID'; // Replace with actual base ID
-  static const String _apiKey = 'YOUR_AIRTABLE_API_KEY'; // Replace with actual API key
-  static const String _tableName = 'Customers'; // Replace with actual table name
+  // Airtable configuration
+  static const String _baseId = 'appVnYHSKVfpjcFtF'; // Your Airtable Base ID
+  static const String _apiKey = 'patlLfHPS1UIfd4UB.92e83b6f13030c85333bba2ce32782d6f68342d997019e1bac93d03ec99e7794'; // Your Airtable API Key
+  static const String _tableName = 'Genset Customer'; // Your table name
 
   static const String _baseUrl = 'https://api.airtable.com/v0/$_baseId/$_tableName';
 

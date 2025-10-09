@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import '../../services/firestore_service.dart';
 import '../../services/mirror_api_service.dart';
+import '../../services/airtable_service.dart';
 import '../../models/mirror_api_model.dart';
 import 'register_page.dart';
 
@@ -47,8 +48,8 @@ class _LoginPageState extends State<LoginPage> {
 
       final User? user = userCredential.user;
       if (user != null) {
-        // Sync with Mirror API after successful login
-        await _syncWithMirrorApi();
+        // Query Airtable for customer credentials
+        await _handlePostLogin(user.email!);
       }
 
       // Navigation will be handled by auth state listener in main.dart
@@ -111,18 +112,8 @@ class _LoginPageState extends State<LoginPage> {
       final User? user = userCredential.user;
 
       if (user != null) {
-        // Store user data in Firestore
-        final firestoreService = FirestoreService();
-        // Using a default utoken as per example
-        const String defaultUtoken = 'bebf6914640ec3ed6bf00398fb7969da';
-        await firestoreService.storeUserData(
-          user.uid,
-          user.email ?? '',
-          defaultUtoken,
-        );
-
-        // Sync with Mirror API after successful login
-        await _syncWithMirrorApi();
+        // Query Airtable for customer credentials
+        await _handlePostLogin(user.email!);
       }
 
       // Navigation will be handled by auth state listener in main.dart
@@ -136,6 +127,122 @@ class _LoginPageState extends State<LoginPage> {
       );
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  /// Handle post-login process: query Airtable for credentials and sync with API
+  Future<void> _handlePostLogin(String email) async {
+    try {
+      print('Querying Airtable for customer credentials: $email');
+
+      // Query Airtable for customer record
+      final customerRecord = await AirtableService.getCustomerByEmail(email);
+
+      if (customerRecord == null) {
+        // Customer not found in Airtable
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text(
+                  '⚠️ Account Not Found',
+                  style: TextStyle(color: Colors.orange),
+                ),
+                content: const Text(
+                  'Your email was not found in our customer database. Please contact your administrator to set up your account.',
+                  style: TextStyle(fontSize: 16),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            },
+          );
+        }
+        return;
+      }
+
+      if (!customerRecord.hasValidCredentials) {
+        // Customer found but missing credentials
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text(
+                  '⚠️ Access Configuration Required',
+                  style: TextStyle(color: Colors.orange),
+                ),
+                content: Text(
+                  'Your account is found but API credentials are not configured. Please contact your administrator.\n\nMissing: ${customerRecord.utoken == null ? 'Utoken' : ''} ${customerRecord.apiUrl == null ? 'API URL' : ''}',
+                  style: const TextStyle(fontSize: 16),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            },
+          );
+        }
+        return;
+      }
+
+      // Store credentials securely and sync with API
+      final firestoreService = FirestoreService();
+
+      // First, store the Airtable credentials in Firestore if not already present
+      await firestoreService.storeUserData(
+        FirebaseAuth.instance.currentUser!.uid,
+        email,
+        customerRecord.utoken!,
+      );
+
+      // Load all utokens from Firestore for this user
+      final userDoc = await firestoreService.getUserDocument(email);
+      final utokens = List<String>.from(userDoc?['utokens'] ?? [customerRecord.utoken!]);
+
+      // For now, assume all utokens use the same API URL from Airtable
+      // In the future, this could be extended to store multiple API URLs in Firestore
+      final apiUrls = List<String>.filled(utokens.length, customerRecord.apiUrl!);
+
+      // Set multiple API credentials
+      await MirrorApiService.setMultipleApiCredentials(utokens, apiUrls);
+
+      // Sync with Mirror API using retrieved credentials
+      await _syncWithMirrorApi();
+
+    } catch (e) {
+      print('Error during post-login process: $e');
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text(
+                '❌ Configuration Error',
+                style: TextStyle(color: Colors.red),
+              ),
+              content: Text(
+                'Failed to retrieve your account configuration: $e\n\nPlease contact your administrator.',
+                style: const TextStyle(fontSize: 16),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      }
     }
   }
 
@@ -455,10 +562,17 @@ class _LoginPageState extends State<LoginPage> {
                 height: 50,
                 child: OutlinedButton.icon(
                   onPressed: _isLoading ? null : _signInWithGoogle,
-                  icon: const Icon(
-                    Icons.g_mobiledata, // Placeholder for Google logo
-                    color: Colors.blue,
-                    size: 24,
+                  icon: Image.asset(
+                    'assets/icons/google_logo.png',
+                    width: 24,
+                    height: 24,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.g_mobiledata,
+                        color: Colors.blue,
+                        size: 24,
+                      );
+                    },
                   ),
                   label: const Text(
                     'Continue with Google',
