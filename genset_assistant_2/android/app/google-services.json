@@ -22,14 +22,6 @@
           }
         },
         {
-          "client_id": "823629461301-mehocogp4q2ksep6tbhthm87v506ujr3.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.company.megagenset99",
-            "certificate_hash": "ce7913292b88e414eaba690f003c7781d3047ebe"
-          }
-        },
-        {
           "client_id": "823629461301-ecar8oihcbcvo994ejlktveurne8038d.apps.googleusercontent.com",
           "client_type": 3
         }
