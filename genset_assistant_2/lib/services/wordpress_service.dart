@@ -357,14 +357,20 @@ class WordPressService {
     }
 
     try {
-      // Build authenticated URL
-      final url = Uri.parse("$_baseUrl/products?per_page=100&consumer_key=$_consumerKey&consumer_secret=$_consumerSecret&_embed");
+      // Build authenticated URL - only fetch published products
+      final url = Uri.parse("$_baseUrl/products?per_page=100&status=publish&consumer_key=$_consumerKey&consumer_secret=$_consumerSecret&_embed");
 
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        final products = data.map((item) => item as Map<String, dynamic>).toList();
+        final allProducts = data.map((item) => item as Map<String, dynamic>).toList();
+
+        // Filter out products that are not published (double check in case API doesn't filter properly)
+        final products = allProducts.where((product) {
+          final status = product['status']?.toString().toLowerCase();
+          return status == 'publish';
+        }).toList();
 
         // Cache the result
         _cache[cacheKey] = products;

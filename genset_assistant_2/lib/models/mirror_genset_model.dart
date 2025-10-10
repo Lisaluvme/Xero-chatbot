@@ -5,6 +5,8 @@ class MirrorGenset {
   final String totaltime;
   final String daytime;
   final List<String> alarmList;
+  final String? sourceUtoken; // Added to identify which API this genset came from
+  final String? sourceApiUrl; // Added to identify which API this genset came from
 
   MirrorGenset({
     required this.gsname,
@@ -13,6 +15,8 @@ class MirrorGenset {
     required this.totaltime,
     required this.daytime,
     required this.alarmList,
+    this.sourceUtoken,
+    this.sourceApiUrl,
   });
 
   factory MirrorGenset.fromJson(Map<String, dynamic> json) {
@@ -23,6 +27,8 @@ class MirrorGenset {
       totaltime: json['totaltime'] ?? '',
       daytime: json['daytime'] ?? '',
       alarmList: json['alarm_list'] != null ? List<String>.from(json['alarm_list']) : [],
+      sourceUtoken: json['sourceUtoken'],
+      sourceApiUrl: json['sourceApiUrl'],
     );
   }
 

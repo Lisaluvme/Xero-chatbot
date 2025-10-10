@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../ai_chat/ai_chat_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class UserManualPage extends StatelessWidget {
   const UserManualPage({super.key});
@@ -131,6 +133,20 @@ class UserManualPage extends StatelessWidget {
           },
         ],
       },
+      {
+        'title': 'AI Chatbot Assistant',
+        'description': 'Get instant help from our AI-powered chatbot for generator questions.',
+        'icon': Icons.chat,
+        'isDirectNavigation': true,
+        'navigationType': 'chatbot',
+      },
+      {
+        'title': 'WhatsApp Support',
+        'description': 'Connect directly with our support team via WhatsApp.',
+        'icon': Icons.message,
+        'isDirectNavigation': true,
+        'navigationType': 'whatsapp',
+      },
     ];
 
     return Scaffold(
@@ -167,16 +183,31 @@ class UserManualPage extends StatelessWidget {
                 ),
                 subtitle: Text(section['description'] as String),
                 trailing: const Icon(Icons.arrow_forward_ios),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => LearnDetailPage(
-                        sections: sections,
-                        currentSectionIndex: index,
+                onTap: () async {
+                  final section = sections[index];
+                  final isDirectNavigation = section['isDirectNavigation'] as bool? ?? false;
+
+                  if (isDirectNavigation) {
+                    final navigationType = section['navigationType'] as String?;
+                    if (navigationType == 'chatbot') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const AiChatPage()),
+                      );
+                    } else if (navigationType == 'whatsapp') {
+                      await _launchWhatsApp();
+                    }
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => LearnDetailPage(
+                          sections: sections,
+                          currentSectionIndex: index,
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  }
                 },
               ),
             );
@@ -184,6 +215,22 @@ class UserManualPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _launchWhatsApp() async {
+    const phoneNumber = '+60129689816';
+    const message = 'Hello from Genset Assistant';
+    final url = 'https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}';
+
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    } else {
+      // Fallback: try to open WhatsApp directly
+      final fallbackUrl = 'whatsapp://send?phone=$phoneNumber&text=${Uri.encodeComponent(message)}';
+      if (await canLaunchUrl(Uri.parse(fallbackUrl))) {
+        await launchUrl(Uri.parse(fallbackUrl));
+      }
+    }
   }
 }
 

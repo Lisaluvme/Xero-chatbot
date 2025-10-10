@@ -19,17 +19,14 @@ class _ProductsScreenState extends State<ProductsScreen> {
   // API data
   List<Map<String, dynamic>> gensets = [];
   List<Map<String, dynamic>> maintenanceParts = [];
-  List<Map<String, dynamic>> spareParts = [];
 
   // Loading states
   bool isLoadingGensets = true;
   bool isLoadingMaintenance = true;
-  bool isLoadingSpare = true;
 
   // Error states
   String gensetsError = '';
   String maintenanceError = '';
-  String spareError = '';
 
 
 
@@ -43,7 +40,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
     // Fetch data from WordPress API
     _fetchProducts();
     _fetchMaintenanceParts();
-    _fetchSpareParts();
   }
 
   Future<void> _fetchProducts() async {
@@ -82,128 +78,15 @@ class _ProductsScreenState extends State<ProductsScreen> {
       print('Error fetching maintenance parts: $e');
       if (mounted) {
         setState(() {
-          maintenanceParts = const [
-            {
-              'name': 'Oil Filter',
-              'price': '\$15',
-              'image': Icons.filter_alt,
-            },
-            {
-              'name': 'Air Filter',
-              'price': '\$20',
-              'image': Icons.air,
-            },
-            {
-              'name': 'Fuel Filter',
-              'price': '\$10',
-              'image': Icons.local_gas_station,
-            },
-            {
-              'name': 'Coolant',
-              'price': '\$25',
-              'image': Icons.water_drop,
-            },
-            {
-              'name': 'Spark Plug',
-              'price': '\$5',
-              'image': Icons.electrical_services,
-            },
-            {
-              'name': 'Belt',
-              'price': '\$12',
-              'image': Icons.settings,
-            },
-          ];
+          maintenanceParts = []; // Show nothing if API fails
           isLoadingMaintenance = false;
-          maintenanceError = 'Failed to load maintenance parts. Showing default data.';
+          maintenanceError = '';
         });
       }
     }
   }
 
-  Future<void> _fetchSpareParts() async {
-    try {
-      final parts = await WordPressService.fetchSpareParts();
-      if (mounted) {
-        setState(() {
-          spareParts = parts.isNotEmpty ? parts : const [
-            {
-              'name': 'Engine Oil Filter',
-              'price': '\$18.99',
-              'image': Icons.filter_alt,
-            },
-            {
-              'name': 'Air Filter',
-              'price': '\$22.50',
-              'image': Icons.air,
-            },
-            {
-              'name': 'Fuel Filter',
-              'price': '\$18.75',
-              'image': Icons.local_gas_station,
-            },
-            {
-              'name': 'Coolant',
-              'price': '\$12.00',
-              'image': Icons.water_drop,
-            },
-            {
-              'name': 'Spark Plug',
-              'price': '\$5.50',
-              'image': Icons.electrical_services,
-            },
-            {
-              'name': 'Belt',
-              'price': '\$8.39',
-              'image': Icons.settings,
-            },
-          ];
-          isLoadingSpare = false;
-          spareError = '';
-        });
-      }
-    } catch (e) {
-      print('Error fetching spare parts: $e');
-      if (mounted) {
-        setState(() {
-          spareParts = const [
-            {
-              'name': 'Engine Oil Filter',
-              'price': '\$18.99',
-              'image': Icons.filter_alt,
-            },
-            {
-              'name': 'Air Filter',
-              'price': '\$22.50',
-              'image': Icons.air,
-            },
-            {
-              'name': 'Fuel Filter',
-              'price': '\$18.75',
-              'image': Icons.local_gas_station,
-            },
-            {
-              'name': 'Coolant',
-              'price': '\$12.00',
-              'image': Icons.water_drop,
-            },
-            {
-              'name': 'Spark Plug',
-              'price': '\$5.50',
-              'image': Icons.electrical_services,
-            },
-            {
-              'name': 'Belt',
-              'price': '\$8.39',
-              'image': Icons.settings,
-            },
-          ];
-          isLoadingSpare = false;
-          spareError = 'Failed to load spare parts. Showing default data.';
-        });
-      }
-    }
-  }
+
 
   @override
   void dispose() {
@@ -293,7 +176,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
                 children: [
                   _buildGensetsSection(),
                   _buildMaintenancePartsSection(),
-                  _buildSparePartsSection(),
                 ],
               ),
             ),
@@ -705,33 +587,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
       );
     }
 
-    // Show "Nothing yet" if no maintenance parts from WooCommerce
+    // Show nothing if no maintenance parts from WooCommerce
     if (maintenanceParts.isEmpty) {
-      return Container(
-        color: Theme.of(context).colorScheme.background,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Maintenance Parts',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onBackground,
-              ),
-            ),
-            SizedBox(height: 16),
-            Center(
-              child: Text(
-                'Nothing yet',
-                style: TextStyle(color: Theme.of(context).colorScheme.onSecondary, fontSize: 16),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
-        ),
-      );
+      return Container(); // Return empty container - shows nothing
     }
 
     return Container(
@@ -880,175 +738,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
     return price;
   }
 
-  Widget _buildSparePartsSection() {
-    if (isLoadingSpare) {
-      return Container(
-        color: Theme.of(context).colorScheme.background,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Spare Parts',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onBackground,
-              ),
-            ),
-            SizedBox(height: 16),
-            Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary)),
-          ],
-        ),
-      );
-    }
 
-    // Show "Nothing yet" if no spare parts from WooCommerce
-    if (spareParts.isEmpty) {
-      return Container(
-        color: Theme.of(context).colorScheme.background,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Spare Parts',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onBackground,
-              ),
-            ),
-            SizedBox(height: 16),
-            Center(
-              child: Text(
-                'Nothing yet',
-                style: TextStyle(color: Theme.of(context).colorScheme.onSecondary, fontSize: 16),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      color: Theme.of(context).colorScheme.background,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Spare Parts',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onBackground,
-            ),
-          ),
-          const SizedBox(height: 16),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-            ),
-            itemCount: spareParts.length,
-            itemBuilder: (context, index) {
-              final part = spareParts[index];
-
-              // Handle different data structures from API vs hardcoded data
-              String name = part['name'] ?? part['title']?['rendered'] ?? 'Unknown Part';
-              String price = part['price'] ?? part['regular_price'] ?? 'Contact for price';
-              if (price != 'Contact for price' && !price.startsWith('RM') && !price.startsWith('\$')) {
-                price = 'RM $price';
-              }
-
-              // Handle image - API might have different structure
-              dynamic imageData = part['image'] ?? part['images'] ?? part['_embedded']?['wp:featuredmedia']?[0]?['source_url'];
-              Widget imageWidget;
-
-              if (imageData is String && imageData.startsWith('http')) {
-                // Network image from API
-                imageWidget = ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    imageData,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Icon(
-                        Icons.build,
-                        size: 30,
-                        color: Theme.of(context).colorScheme.onSecondary,
-                      );
-                    },
-                  ),
-                );
-              } else if (imageData is IconData) {
-                // Icon from hardcoded data
-                imageWidget = Icon(
-                  imageData,
-                  size: 30,
-                  color: Theme.of(context).colorScheme.tertiary,
-                );
-              } else {
-                // Default icon
-                imageWidget = Icon(
-                  Icons.build,
-                  size: 30,
-                  color: Theme.of(context).colorScheme.tertiary,
-                );
-              }
-
-              return Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.background,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: imageWidget,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      name,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      price,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.tertiary,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
 
 
 }

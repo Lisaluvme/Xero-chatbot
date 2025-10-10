@@ -109,8 +109,6 @@ class GensetAssistantApp extends StatelessWidget {
   }
 }
 
-
-
 class PlaceholderScreen extends StatelessWidget {
   final String title;
 
@@ -179,19 +177,20 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _homePageKey,
-      extendBody: true, // 让底部导航半透明效果更自然
-      floatingActionButton: _showChatShortcut ? FloatingActionButton(
+      extendBody: true,
+      floatingActionButton: _showChatShortcut
+          ? FloatingActionButton(
         onPressed: () {
-          // Navigate to AI Chat page
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => AiChatPage()),
           );
         },
-        backgroundColor: const Color(0xFF1E3A8A), // Primary blue
+        backgroundColor: const Color(0xFF1E3A8A),
         child: const Icon(Icons.chat, color: Colors.white),
         tooltip: 'Chat with Assistant',
-      ) : null,
+      )
+          : null,
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 400),
         transitionBuilder: (child, animation) {
@@ -202,7 +201,6 @@ class _HomePageState extends State<HomePage> {
         },
         child: _pages[_selectedIndex],
       ),
-
       bottomNavigationBar: Container(
         margin: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -246,8 +244,8 @@ class _HomePageState extends State<HomePage> {
               ),
             ],
             currentIndex: _selectedIndex,
-            selectedItemColor: Color(0xFF1A3C6E), // Primary Blue
-            unselectedItemColor: Color(0xFF0F172A), // Text Color - Black
+            selectedItemColor: Color(0xFF1A3C6E),
+            unselectedItemColor: Color(0xFF0F172A),
             onTap: _onItemTapped,
             type: BottomNavigationBarType.fixed,
             backgroundColor: Colors.white,
@@ -258,4 +256,8 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+}
+
+class MyApp extends GensetAssistantApp {
+  const MyApp({super.key});
 }

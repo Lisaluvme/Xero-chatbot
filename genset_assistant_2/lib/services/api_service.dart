@@ -5,14 +5,14 @@ import '../models/generator_model.dart';
 import '../models/genset_model.dart';
 
 class ApiService {
-
   static const String baseUrl = 'https://mirrorapi.netlify.app';
 
-
+  /// 获取发电机状态
   Future<GeneratorStatus> getGeneratorStatus() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
+
       final response = await http.get(
         Uri.parse('$baseUrl/genset'),
         headers: {
@@ -23,7 +23,6 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
-
 
         if (jsonData is Map<String, dynamic>) {
           return GeneratorStatus.fromJson(jsonData);
@@ -41,11 +40,12 @@ class ApiService {
     }
   }
 
-
+  /// 获取保养记录
   Future<List<ServiceRecordModel>> getServiceRecords() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
+
       final response = await http.get(
         Uri.parse('$baseUrl/service-records'),
         headers: {
@@ -68,11 +68,12 @@ class ApiService {
     }
   }
 
-
+  /// 保存保养记录
   Future<void> saveServiceRecord(ServiceRecordModel record) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       final idToken = await user?.getIdToken();
+
       final response = await http.post(
         Uri.parse('$baseUrl/service-records'),
         headers: {
@@ -90,21 +91,25 @@ class ApiService {
     }
   }
 
+  /// ✅ 获取 genset 列表（已修正 Mirror API 格式）
   Future<List<Genset>> getGensetList(String utoken) async {
     try {
       final response = await http.get(
-        Uri.parse('https://www.smartgencloudplus.com/yewu/third/genset/list?utoken=$utoken&page=1&per_page=10'),
+        Uri.parse(
+          'https://www.smartgencloudplus.com/yewu/third/genset/list?utoken=$utoken&page=1&per_page=10',
+        ),
       );
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
-        // Assuming the response has a 'data' field with list of gensets
-        if (jsonData['data'] is List) {
-          return (jsonData['data'] as List)
-              .map((item) => Genset.fromJson(item))
-              .toList();
+        print('🛰️ API Response: $jsonData'); // 调试输出
+
+        // ✅ 修正：Mirror API 的数据在 data.list
+        if (jsonData['data'] != null && jsonData['data']['list'] is List) {
+          final list = jsonData['data']['list'] as List;
+          return list.map((item) => Genset.fromJson(item)).toList();
         } else {
-          throw Exception('Invalid response format');
+          throw Exception('Invalid response format: Missing data.list');
         }
       } else {
         throw Exception('Failed to load genset list');

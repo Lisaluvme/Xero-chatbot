@@ -311,408 +311,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
           ),
         );
       },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewPadding.bottom + 160), // Increased padding for navigation bar
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF1E3A8A), Color(0xFF14B8A6)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(30),
-                    bottomRight: Radius.circular(30),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: TextField(
-                              controller: _searchController,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: const InputDecoration(
-                                hintText: 'Type a message...',
-                                hintStyle: TextStyle(color: Colors.white70),
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              ),
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: _sendSearchMessage,
-                          icon: const Icon(Icons.send, color: Colors.white),
-                        ),
-                        IconButton(
-                          onPressed: () => _showLoginDialog(context),
-                          icon: const Icon(Icons.account_circle,
-                              color: Colors.white),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-
-
-              // Services Grid
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate:
-                  const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemCount: serviceItems.length,
-                  itemBuilder: (context, index) {
-                    final item = serviceItems[index];
-                    return GestureDetector(
-                      onTap: () => _onServiceItemTap(context, index),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 55,
-                            height: 55,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: item['gradient'] as List<Color>,
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: (item['color'] as Color).withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              item['icon'],
-                              color: Colors.white,
-                              size: 26,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Flexible(
-                            child: Text(
-                              item['label'],
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF0F172A), // Text Color
-                              ),
-                              textAlign: TextAlign.center,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-
-
-              // Popular Products Section
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Popular Products',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF0F172A), // Text Color
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const ProductsScreen(initialCategory: 0),
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            'See All',
-                            style: TextStyle(
-                              color: Color(0xFF38BDF8), // Highlight Color
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (popularProductsLoading)
-                      const Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF2563EB),
-                        ),
-                      )
-                    else if (popularProductsError.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.orange.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.warning, color: Colors.orange.shade700),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Unable to load popular products',
-                                    style: TextStyle(
-                                      color: Colors.orange.shade700,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Showing cached data. Tap to retry.',
-                                    style: TextStyle(
-                                      color: Colors.orange.shade600,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: fetchPopularProducts,
-                              icon: Icon(Icons.refresh, color: Colors.orange.shade700),
-                            ),
-                          ],
-                        ),
-                      )
-                    else if (popularProducts.isEmpty)
-                      const Center(
-                        child: Text(
-                          'No popular products available',
-                          style: TextStyle(color: Color(0xFFB3B3B3)),
-                        ),
-                      )
-                    else
-                      SizedBox(
-                        height: 180,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: popularProducts.length,
-                          itemBuilder: (context, index) {
-                            return _buildPopularProductItem(popularProducts[index]);
-                          },
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Mirror Gensets Section (only show if user is logged in)
-              if (FirebaseAuth.instance.currentUser != null) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'My Gensets',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF0F172A), // Text Color
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: fetchMirrorGensets,
-                            child: const Text(
-                              'Refresh',
-                              style: TextStyle(
-                                color: Color(0xFF38BDF8), // Highlight Color
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      if (mirrorGensetLoading)
-                        const Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFF2563EB),
-                          ),
-                        )
-                      else if (mirrorGensetError.isNotEmpty)
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.orange.shade200),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.warning, color: Colors.orange.shade700),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Access Required',
-                                      style: TextStyle(
-                                        color: Colors.orange.shade700,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      mirrorGensetError,
-                                      style: TextStyle(
-                                        color: Colors.orange.shade600,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else if (mirrorGensets.isEmpty)
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.blue.shade200),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.info, color: Colors.blue.shade700),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'No genset data available. Please contact your administrator.',
-                                  style: TextStyle(
-                                    color: Colors.blue.shade700,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else
-                        SizedBox(
-                          height: 200,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: mirrorGensets.length,
-                            itemBuilder: (context, index) {
-                              return _buildMirrorGensetItem(mirrorGensets[index]);
-                            },
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ],
-
-              // Latest News
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Latest News',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0F172A), // Text Color
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (isLoading) const Center(child: CircularProgressIndicator()),
-                    if (errorMessage.isNotEmpty)
-                      Center(
-                        child: Text(
-                          errorMessage,
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    if (posts.isEmpty && !isLoading && errorMessage.isEmpty)
-                      const Center(child: Text('No news available')),
-                    if (!isLoading && errorMessage.isEmpty && posts.isNotEmpty)
-                      SizedBox(
-                        height: 250,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: posts.length,
-                          itemBuilder: (context, index) {
-                            return _buildNewsItem(posts[index]);
-                          },
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  );
   }
 
   void _onServiceItemTap(BuildContext context, int index) {
@@ -770,7 +369,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       // Fallback: try to open WhatsApp directly
-      final String fallbackUrl = 'whatsapp://send?phone=$phoneNumber&text=${Uri.encodeComponent(message)}';
+      final String fallbackUrl = 'whatsapp://send?phone/$phoneNumber?text=${Uri.encodeComponent(message)}';
       final Uri fallbackUri = Uri.parse(fallbackUrl);
       if (await canLaunchUrl(fallbackUri)) {
         await launchUrl(fallbackUri, mode: LaunchMode.externalApplication);
@@ -1329,7 +928,14 @@ class _HomePageWidgetState extends State<HomePageWidget> {
       statusColor = Colors.blue;
     }
 
-    return Container(
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const LiveStatusPage()),
+        );
+      },
+      child: Container(
       width: 200,
       height: 180,
       margin: const EdgeInsets.only(right: 12),
@@ -1446,6 +1052,371 @@ class _HomePageWidgetState extends State<HomePageWidget> {
           ),
         ],
       ),
-    );
+    ),
+  );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewPadding.bottom + 160), // Increased padding for navigation bar
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF1E3A8A), Color(0xFF14B8A6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: TextField(
+                              controller: _searchController,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: const InputDecoration(
+                                hintText: 'Type a message...',
+                                hintStyle: TextStyle(color: Colors.white70),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              ),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: _sendSearchMessage,
+                          icon: const Icon(Icons.send, color: Colors.white),
+                        ),
+                        IconButton(
+                          onPressed: () => _showLoginDialog(context),
+                          icon: const Icon(Icons.account_circle,
+                              color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+
+
+              // Services Grid
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate:
+                  const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: serviceItems.length,
+                  itemBuilder: (context, index) {
+                    final item = serviceItems[index];
+                    return GestureDetector(
+                      onTap: () => _onServiceItemTap(context, index),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 55,
+                            height: 55,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: item['gradient'] as List<Color>,
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (item['color'] as Color).withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              item['icon'],
+                              color: Colors.white,
+                              size: 26,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Flexible(
+                            child: Text(
+                              item['label'],
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF0F172A), // Text Color
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+
+
+              // Popular Products Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Popular Products',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F172A), // Text Color
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ProductsScreen(initialCategory: 0),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'See All',
+                            style: TextStyle(
+                              color: Color(0xFF38BDF8), // Highlight Color
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (popularProductsLoading)
+                      const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF2563EB),
+                        ),
+                      )
+                    else if (popularProductsError.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.warning, color: Colors.orange.shade700),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Unable to load popular products',
+                                    style: TextStyle(
+                                      color: Colors.orange.shade700,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Showing cached data. Tap to retry.',
+                                    style: TextStyle(
+                                      color: Colors.orange.shade600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: fetchPopularProducts,
+                              icon: Icon(Icons.refresh, color: Colors.orange.shade700),
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (popularProducts.isEmpty)
+                      const Center(
+                        child: Text(
+                          'No popular products available',
+                          style: TextStyle(color: Color(0xFFB3B3B3)),
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        height: 180,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: popularProducts.length,
+                          itemBuilder: (context, index) {
+                            return _buildPopularProductItem(popularProducts[index]);
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Mirror Gensets Section (only show if user is logged in and no access error)
+              if (FirebaseAuth.instance.currentUser != null && mirrorGensetError.isEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'My Gensets',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0F172A), // Text Color
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: fetchMirrorGensets,
+                            child: const Text(
+                              'Refresh',
+                              style: TextStyle(
+                                color: Color(0xFF38BDF8), // Highlight Color
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (mirrorGensetLoading)
+                        const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF2563EB),
+                          ),
+                        )
+                      else if (mirrorGensets.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.blue.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info, color: Colors.blue.shade700),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'no gensets',
+                                  style: TextStyle(
+                                    color: Colors.blue.shade700,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        SizedBox(
+                          height: 200,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: mirrorGensets.length,
+                            itemBuilder: (context, index) {
+                              return _buildMirrorGensetItem(mirrorGensets[index]);
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+
+              // Latest News
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Latest News',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F172A), // Text Color
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (isLoading) const Center(child: CircularProgressIndicator()),
+                    if (errorMessage.isNotEmpty)
+                      Center(
+                        child: Text(
+                          errorMessage,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    if (posts.isEmpty && !isLoading && errorMessage.isEmpty)
+                      const Center(child: Text('No news available')),
+                    if (!isLoading && errorMessage.isEmpty && posts.isNotEmpty)
+                      SizedBox(
+                        height: 250,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: posts.length,
+                          itemBuilder: (context, index) {
+                            return _buildNewsItem(posts[index]);
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+    ),
+  );
   }
 }
