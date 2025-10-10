@@ -48,9 +48,9 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     {'icon': Icons.book, 'label': 'Instructions', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
     {'icon': Icons.build_circle, 'label': 'Fix Issues', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
     {'icon': Icons.engineering, 'label': 'Service', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
-    {'icon': Icons.cable, 'label': 'Installation', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
+    {'icon': Icons.cable, 'label': 'My Genset', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
     {'icon': Icons.chat, 'label': 'Contact Us', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
-    {'icon': Icons.monitor, 'label': 'Monitor', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
+    {'icon': Icons.monitor, 'label': 'Service', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
     {'icon': Icons.message, 'label': 'WhatsApp', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
   ];
 
@@ -344,13 +344,19 @@ class _HomePageWidgetState extends State<HomePageWidget> {
       case 4:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const ContactPage()),
+          MaterialPageRoute(builder: (context) => const LiveStatusPage()),
         );
         break;
       case 5:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const LiveStatusPage()),
+          MaterialPageRoute(builder: (context) => const ContactPage()),
+        );
+        break;
+      case 6:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ServiceRecordsPage()),
         );
         break;
       case 7:
@@ -1169,10 +1175,10 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                           Flexible(
                             child: Text(
                               item['label'],
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF0F172A), // Text Color
+                                color: (item['label'] == 'Fix Issues' || item['label'] == 'Service') ? Colors.black : const Color(0xFF0F172A), // Text Color
                               ),
                               textAlign: TextAlign.center,
                               maxLines: 3,
