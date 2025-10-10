@@ -58,8 +58,9 @@ class _LoginPageState extends State<LoginPage> {
         SnackBar(content: Text(e.message ?? 'Sign-in failed')),
       );
     } catch (e) {
+      print('Email Sign-In error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('An error occurred during sign-in')),
+        SnackBar(content: Text('Sign-in failed: ${e.toString()}')),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -98,8 +99,9 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
+        // User canceled the sign-in
         setState(() => _isLoading = false);
-        return; // User canceled the sign-in
+        return;
       }
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
@@ -122,8 +124,9 @@ class _LoginPageState extends State<LoginPage> {
         SnackBar(content: Text(e.message ?? 'Google Sign-In failed')),
       );
     } catch (e) {
+      print('Google Sign-In error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('An error occurred during sign-in')),
+        SnackBar(content: Text('Sign-in failed: ${e.toString()}')),
       );
     } finally {
       setState(() => _isLoading = false);
