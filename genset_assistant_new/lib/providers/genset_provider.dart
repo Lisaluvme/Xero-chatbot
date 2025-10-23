@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../models/mirror_genset_model.dart';
 import '../services/mirror_api_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class GensetProvider with ChangeNotifier {
   List<MirrorGenset> _gensets = [];
@@ -17,35 +17,24 @@ class GensetProvider with ChangeNotifier {
 
   bool get _hasError => _error.isNotEmpty;
 
-  // Fetch gensets from backend API
+  // Fetch gensets from SmartGen API using Firebase Auth email
   Future<void> fetchGensets() async {
     _isLoading = true;
     _error = '';
     notifyListeners();
 
     try {
-      // Call MirrorApiService to get genset list
-      final mirrorApiService = MirrorApiService();
-      final gensetList = await mirrorApiService.fetchGensetList();
+      final gensets = await MirrorApiService.fetchGensetsByFirebaseEmail();
 
-      if (gensetList != null && gensetList.isNotEmpty) {
-        // Print the returned genset list in console
-        print('🔍 [Flutter] Genset list received: ${gensetList.length} items');
+      _gensets = gensets;
+      _error = '';
+      print('✅ [Flutter] Successfully loaded ${gensets.length} gensets from SmartGen API');
+      print('📱 [Flutter] Gensets: ${gensets.map((g) => '${g.gensetName} (${g.token})').toList()}');
 
-        // Convert the list to MirrorGenset objects
-        final gensets = gensetList.map((e) => MirrorGenset.fromJson(e as Map<String, dynamic>)).toList();
-        _gensets = gensets;
-        _error = '';
-        print('✅ [Flutter] Successfully loaded ${gensets.length} gensets');
-      } else {
-        _gensets = [];
-        _error = 'No gensets found';
-        print('⚠️ [Flutter] No gensets found in response');
-      }
     } catch (e) {
       _error = _getErrorMessage(e.toString());
       _gensets = [];
-      print('❌ [Flutter] Error fetching gensets: $e');
+      print('❌ [Flutter] Error fetching gensets from SmartGen API: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -90,6 +79,8 @@ class GensetProvider with ChangeNotifier {
       return 'Please log in to view your gensets';
     } else if (error.contains('User email not available')) {
       return 'Your account email is not available. Please try logging out and back in.';
+    } else if (error.contains('No customer mapping found')) {
+      return 'Your account was not found in our database. Please contact support.';
     } else if (error.contains('404') || error.contains('Not Found')) {
       return 'Your account was not found in our database. Please contact support.';
     } else if (error.contains('Network error') || error.contains('Connection refused')) {
