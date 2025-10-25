@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../services/firestore_service.dart';
+import '../../services/airtable_service.dart';
 
 class UtokenAssignmentPage extends StatefulWidget {
   const UtokenAssignmentPage({super.key});
@@ -10,7 +10,6 @@ class UtokenAssignmentPage extends StatefulWidget {
 }
 
 class _UtokenAssignmentPageState extends State<UtokenAssignmentPage> {
-  final FirestoreService _firestoreService = FirestoreService();
   String? _userEmail;
   bool _isLoading = false;
 
@@ -92,16 +91,15 @@ class _UtokenAssignmentPageState extends State<UtokenAssignmentPage> {
   Future<void> _updateUtoken(String utoken) async {
     setState(() => _isLoading = true);
     try {
-      // Fetch current document
-      final doc = await _firestoreService.getUserDocument(_userEmail!);
-      if (doc == null) {
-        throw Exception('User document not found');
+      // Fetch current customer record
+      final customer = await AirtableService.getCustomerByEmail(_userEmail!);
+      if (customer == null) {
+        throw Exception('User not found in Airtable');
       }
-      final currentUtokens = List<String>.from(doc['utokens'] ?? []);
-      final oldUpdatedAt = doc['updatedAt'];
+      final currentUtokens = List<String>.from(customer.tokens);
 
       // Add utoken
-      await _firestoreService.addUtokenToUser(_userEmail!, utoken);
+      await AirtableService.addUtokenToUser(_userEmail!, utoken);
 
       // Ask for confirmation
       final confirm = await showDialog<bool>(
@@ -123,21 +121,20 @@ class _UtokenAssignmentPageState extends State<UtokenAssignmentPage> {
       );
 
       if (confirm == true) {
-        // Fetch updated document
-        final updatedDoc = await _firestoreService.getUserDocument(_userEmail!);
-        if (updatedDoc != null) {
+        // Fetch updated customer record
+        final updatedCustomer = await AirtableService.getCustomerByEmail(_userEmail!);
+        if (updatedCustomer != null) {
           final result = {
             'userEmail': _userEmail,
-            'updatedUtokens': updatedDoc['utokens'],
-            'createdAt': updatedDoc['createdAt'],
-            'updatedAt': updatedDoc['updatedAt'],
+            'updatedUtokens': updatedCustomer.tokens,
+            'customerName': updatedCustomer.customerName,
+            'gensetName': updatedCustomer.gensetName,
           };
           _showResult(result);
         }
       } else {
         // Revert
-        await _firestoreService.setUtokensForUser(_userEmail!, currentUtokens);
-        // Optionally set updatedAt back, but since setUtokens updates it, maybe not needed
+        await AirtableService.setUtokensForUser(_userEmail!, currentUtokens);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Operation cancelled')),
         );

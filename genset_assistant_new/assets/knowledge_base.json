@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "last_updated": "2025-01-23",
+  "categories": [
+    {
+      "id": "maintenance",
+      "name": "Maintenance",
+      "description": "Generator maintenance procedures",
+      "topics": []
+    },
+    {
+      "id": "troubleshooting",
+      "name": "Troubleshooting",
+      "description": "Common generator issues and solutions",
+      "topics": []
+    },
+    {
+      "id": "safety",
+      "name": "Safety",
+      "description": "Safety guidelines and procedures",
+      "topics": []
+    }
+  ],
+  "faqs": [],
+  "emergency_contacts": []
+}

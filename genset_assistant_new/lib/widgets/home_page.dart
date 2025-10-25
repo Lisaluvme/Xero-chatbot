@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../features/learn/learn_page.dart';
 import '../features/maintenance/maintenance_page.dart';
 import '../features/troubleshooting/troubleshooting_page.dart';
@@ -14,9 +14,11 @@ import 'news_detail_page.dart';
 import '../features/ai_chat/ai_chat_page.dart';
 import '../features/products/products_page.dart';
 import '../features/products/product_details_page.dart';
+import '../features/auth/login_page.dart';
 import '../services/wordpress_service.dart';
-import '../services/mirror_api_service.dart';
-import '../models/mirror_genset_model.dart';
+import '../services/airtable_service.dart';
+import '../models/genset_model.dart';
+import '../providers/genset_provider.dart';
 
 
 class HomePageWidget extends StatefulWidget {
@@ -30,9 +32,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   List<dynamic> posts = [];
   bool isLoading = true;
   String errorMessage = '';
-  List<MirrorGenset> mirrorGensets = [];
-  bool mirrorGensetLoading = false;
-  String mirrorGensetError = '';
+  // Removed old Airtable variables - now using GensetProvider
   List<Map<String, dynamic>> popularProducts = [];
   bool popularProductsLoading = true;
   String popularProductsError = '';
@@ -53,8 +53,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   void initState() {
     super.initState();
     fetchPosts();
-    fetchMirrorGensets();
     fetchPopularProducts();
+    // GensetProvider will be triggered by the Consumer in build method
   }
 
   @override
@@ -105,63 +105,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     }
   }
 
-  // Removed Firestore-based fetchGensets method
-  // Now using only Mirror API with email-based authentication
 
-  Future<void> fetchMirrorGensets() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      if (mounted) {
-        setState(() {
-          mirrorGensetLoading = false;
-          mirrorGensetError = 'Please login to view your gensets';
-        });
-      }
-      return;
-    }
-
-    if (mounted) {
-      setState(() => mirrorGensetLoading = true);
-    }
-
-    try {
-      // Use the new Gmail-based API method
-      final gensets = await MirrorApiService.fetchGensetsByFirebaseEmail();
-
-      if (mounted) {
-        setState(() {
-          mirrorGensets = gensets;
-          mirrorGensetLoading = false;
-          mirrorGensetError = '';
-        });
-      }
-    } catch (e) {
-      print('Error fetching mirror gensets: $e');
-      if (mounted) {
-        setState(() {
-          mirrorGensetError = _getErrorMessage(e.toString());
-          mirrorGensetLoading = false;
-        });
-      }
-    }
-  }
-
-  // Helper method to format error messages
-  String _getErrorMessage(String error) {
-    if (error.contains('User not authenticated')) {
-      return 'Please log in to view your gensets';
-    } else if (error.contains('User email not available')) {
-      return 'Your account email is not available. Please try logging out and back in.';
-    } else if (error.contains('User not found in Airtable')) {
-      return 'Your account was not found in our database. Please contact support.';
-    } else if (error.contains('Network error')) {
-      return 'Network connection failed. Please check your internet connection.';
-    } else if (error.contains('Server error')) {
-      return 'Server is temporarily unavailable. Please try again later.';
-    } else {
-      return 'Failed to load genset data. Please try again.';
-    }
-  }
 
   Future<void> fetchPopularProducts() async {
     try {
@@ -221,99 +165,103 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     }
   }
 
-  /// 美化登录弹窗
+  /// Show account dialog with logout option
   void _showLoginDialog(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final userEmail = user?.email ?? 'Not signed in';
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        final user = FirebaseAuth.instance.currentUser;
-
         return Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (user == null) ...[
-                const Text(
-                  "Login to continue",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFFFFFFF)),
+              const Text(
+                "Account Settings",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.email, color: Colors.blue),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        userEmail,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                  ),
-                  icon: const Icon(Icons.login),
-                  label: const Text("Login with Google"),
-                  onPressed: () async {
-                    final GoogleSignIn googleSignIn = GoogleSignIn();
-                    final GoogleSignInAccount? googleUser =
-                    await googleSignIn.signIn();
-                    if (googleUser != null) {
-                      final GoogleSignInAuthentication googleAuth =
-                      await googleUser.authentication;
-                      final AuthCredential credential =
-                      GoogleAuthProvider.credential(
-                        accessToken: googleAuth.accessToken,
-                        idToken: googleAuth.idToken,
-                      );
-                      await FirebaseAuth.instance
-                          .signInWithCredential(credential);
-                      Navigator.pop(context);
-                      setState(() {});
-                      // Refresh mirror gensets after login
-                      fetchMirrorGensets();
-                    }
-                  },
+                  ],
                 ),
-              ] else ...[
-                CircleAvatar(
-                  backgroundImage: NetworkImage(user.photoURL ?? ""),
-                  radius: 40,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  user.displayName ?? "No Name",
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFFFFFFF)),
-                ),
-                Text(
-                  user.email ?? "",
-                  style: const TextStyle(color: Color(0xFFB3B3B3)),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                "Authentication is now handled through Firebase & Airtable.\nContact your administrator for account management.",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text("Close"),
                     ),
-                    backgroundColor: Theme.of(context).colorScheme.error,
-                    foregroundColor: Theme.of(context).colorScheme.onError,
                   ),
-                  icon: const Icon(Icons.logout),
-                  label: const Text("Logout"),
-                  onPressed: () async {
-                    await FirebaseAuth.instance.signOut();
-                    await GoogleSignIn().signOut();
-                    Navigator.pop(context);
-                    setState(() {});
-                  },
-                ),
-              ]
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _logout(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        "Logout",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         );
       },
-  );
+    );
+  }
+
+  /// Logout functionality
+  void _logout(BuildContext context) {
+    Navigator.pop(context); // Close the dialog first
+
+    // Clear user session and reset providers
+    // Note: Since we're using Airtable for auth, we mainly reset the local state
+    Provider.of<GensetProvider>(context, listen: false).reset();
+
+    // Navigate to login page
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+      (Route<dynamic> route) => false,
+    );
   }
 
   void _onServiceItemTap(BuildContext context, int index) {
@@ -920,17 +868,154 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     );
   }
 
-  Widget _buildMirrorGensetItem(MirrorGenset genset) {
-    // Determine status color
+  List<Widget> _buildMirrorGensetSection() {
+    return [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'My Gensets',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A), // Text Color
+                  ),
+                ),
+                Consumer<GensetProvider>(
+                  builder: (context, gensetProvider, child) {
+                    return TextButton(
+                      onPressed: () => gensetProvider.refreshGensets(),
+                      child: const Text(
+                        'Refresh',
+                        style: TextStyle(
+                          color: Color(0xFF38BDF8), // Highlight Color
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Consumer<GensetProvider>(
+              builder: (context, gensetProvider, child) {
+                if (gensetProvider.isLoading) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF2563EB),
+                    ),
+                  );
+                }
+
+                if (gensetProvider.hasError) {
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error, color: Colors.red.shade700),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Unable to load genset data',
+                                style: TextStyle(
+                                  color: Colors.red.shade700,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                gensetProvider.error,
+                                style: TextStyle(
+                                  color: Colors.red.shade600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => gensetProvider.fetchGensets(),
+                          icon: Icon(Icons.refresh, color: Colors.red.shade700),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                if (gensetProvider.gensets.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.electrical_services, color: Colors.grey.shade700),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'No gensets assigned to your account.\nContact support to get access to your gensets.',
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return SizedBox(
+                  height: 200,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: gensetProvider.gensets.length,
+                    itemBuilder: (context, index) {
+                      return _buildGensetItem(gensetProvider.gensets[index]);
+                    },
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 24),
+    ];
+  }
+
+  Widget _buildGensetItem(Genset genset) {
+    // Determine status color based on genset status
     Color statusColor;
-    if (genset.statusName.toLowerCase().contains('running') ||
-        genset.statusName.toLowerCase().contains('online')) {
+    String statusText = genset.status ?? 'Unknown';
+    if (statusText.toLowerCase().contains('running') ||
+        statusText.toLowerCase().contains('online') ||
+        statusText.toLowerCase().contains('active')) {
       statusColor = Colors.green;
-    } else if (genset.statusName.toLowerCase().contains('alarm') ||
-               genset.statusName.toLowerCase().contains('error')) {
+    } else if (statusText.toLowerCase().contains('alarm') ||
+               statusText.toLowerCase().contains('error') ||
+               statusText.toLowerCase().contains('fault')) {
       statusColor = Colors.red;
-    } else if (genset.statusName.toLowerCase().contains('standby') ||
-               genset.statusName.toLowerCase().contains('off')) {
+    } else if (statusText.toLowerCase().contains('standby') ||
+               statusText.toLowerCase().contains('off') ||
+               statusText.toLowerCase().contains('idle')) {
       statusColor = Colors.orange;
     } else {
       statusColor = Colors.blue;
@@ -944,135 +1029,144 @@ class _HomePageWidgetState extends State<HomePageWidget> {
         );
       },
       child: Container(
-      width: 200,
-      height: 180,
-      margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1E3A8A).withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header with icon and status
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
-              ),
+        width: 200,
+        height: 180,
+        margin: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1E3A8A).withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.electrical_services,
-                  color: statusColor,
-                  size: 24,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    genset.gensetName,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: statusColor,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Genset Details
-          Expanded(
-            child: Padding(
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with icon and status
+            Container(
               padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.1),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              child: Row(
                 children: [
-                  Text(
-                    'Token: ${genset.token}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF6B7280),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Icon(
+                    Icons.electrical_services,
+                    color: statusColor,
+                    size: 24,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Status: ${genset.statusName}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: statusColor,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Total Time: ${genset.totalTime}',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF6B7280),
-                    ),
-                  ),
-                  Text(
-                    'Address: ${genset.address}',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF6B7280),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    'Customer: ${genset.customerName}',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF6B7280),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (genset.alarmList.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: Colors.red.shade200),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      genset.name ?? 'Unnamed Genset',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
                       ),
-                      child: Text(
-                        '${genset.alarmList.length} Alarm${genset.alarmList.length > 1 ? 's' : ''}',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.red,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),
-          ),
-        ],
+
+            // Genset Details
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ID: ${genset.id ?? 'N/A'}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Status: $statusText',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: statusColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Power: ${genset.power ?? 'N/A'}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                    Text(
+                      'Location: ${genset.location ?? 'N/A'}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF6B7280),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      'Model: ${genset.model ?? 'N/A'}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF6B7280),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    // Show maintenance status if available
+                    if (genset.maintenanceStatus != null) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                                 genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                              ? Colors.red.shade50 : Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                                   genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                                ? Colors.red.shade200 : Colors.green.shade200,
+                          ),
+                        ),
+                        child: Text(
+                          genset.maintenanceStatus!,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                                   genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                                ? Colors.red : Colors.green,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
   }
 
   @override
@@ -1316,82 +1410,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
               const SizedBox(height: 24),
 
               // Mirror Gensets Section (only show if user is logged in and no access error)
-              if (FirebaseAuth.instance.currentUser != null && mirrorGensetError.isEmpty) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'My Gensets',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF0F172A), // Text Color
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: fetchMirrorGensets,
-                            child: const Text(
-                              'Refresh',
-                              style: TextStyle(
-                                color: Color(0xFF38BDF8), // Highlight Color
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      if (mirrorGensetLoading)
-                        const Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFF2563EB),
-                          ),
-                        )
-                      else if (mirrorGensets.isEmpty)
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.blue.shade200),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.info, color: Colors.blue.shade700),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'No genset data available for your account.\nPlease contact your administrator if you believe this is an error.',
-                                  style: TextStyle(
-                                    color: Colors.blue.shade700,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else
-                        SizedBox(
-                          height: 200,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: mirrorGensets.length,
-                            itemBuilder: (context, index) {
-                              return _buildMirrorGensetItem(mirrorGensets[index]);
-                            },
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ],
+              ..._buildMirrorGensetSection(),
 
               // Latest News
               Padding(

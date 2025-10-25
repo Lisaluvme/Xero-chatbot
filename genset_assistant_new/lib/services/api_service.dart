@@ -1,11 +1,41 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/generator_model.dart';
 import '../models/genset_model.dart';
+import 'airtable_service.dart';
 
 class ApiService {
   static const String baseUrl = 'https://backendmirror.netlify.app';
+
+  /// 获取当前用户的 utoken 从 Airtable
+  static Future<List<String>?> getCurrentUserUtokens() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null || user.email == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final customer = await AirtableService.getCustomerByEmail(user.email!);
+      if (customer == null || customer.tokens.isEmpty) {
+        throw Exception('No utoken found for user');
+      }
+
+      // 返回所有 tokens
+      print('🔑 [Flutter] Found ${customer.tokens.length} tokens for user: ${customer.tokens}');
+      return customer.tokens;
+    } catch (e) {
+      print('Error fetching user utokens: $e');
+      return null;
+    }
+  }
+
+  /// 获取当前用户的 utoken 从 Airtable (向后兼容)
+  static Future<String?> getCurrentUserUtoken() async {
+    final tokens = await getCurrentUserUtokens();
+    return tokens?.first;
+  }
 
   /// 获取发电机状态
   Future<GeneratorStatus> getGeneratorStatus() async {

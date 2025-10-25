@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../../services/firestore_service.dart';
 import '../../main.dart' as main_app;
 import '../../widgets/home_page.dart' show HomePageWidget;
 
@@ -104,8 +102,7 @@ class _AiChatPageState extends State<AiChatPage> {
   }
 
   void _addWelcomeMessage() {
-    final user = FirebaseAuth.instance.currentUser;
-    final userName = user?.displayName ?? user?.email?.split('@')[0] ?? 'User';
+    const userName = 'User';
 
     String welcomeMessage;
     switch (_currentLanguage) {
@@ -425,52 +422,9 @@ class _AiChatPageState extends State<AiChatPage> {
     // Add natural follow-up questions for technician-like behavior
     String enhancedResponse = _addTechnicianFollowUp(response, userMessage, _currentLanguage);
 
-    // Log the interaction to Firestore
-    await _logChatInteraction(userMessage, enhancedResponse, detectedErrorCodes, detectedIntent);
+    // Chat interaction logging removed - now using Airtable for data management
 
     return {'text': enhancedResponse, 'image': imagePath};
-  }
-
-  Future<void> _logChatInteraction(String userMessage, String botResponse, List<String> detectedErrorCodes, String intent) async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      FirestoreService firestoreService = FirestoreService();
-
-      // Log general chat interaction
-      await firestoreService.logChatInteraction(
-        userId: user.uid,
-        userMessage: userMessage,
-        botResponse: botResponse,
-        language: _currentLanguage,
-        detectedErrorCodes: detectedErrorCodes,
-        intent: intent,
-        contextData: {
-          'conversationLength': _messages.length,
-          'hasImage': botResponse.contains('assets/images'),
-          'detectedLanguage': _currentLanguage,
-        },
-      );
-
-      // Log specific error code detections
-      if (detectedErrorCodes.isNotEmpty) {
-        for (String errorCode in detectedErrorCodes) {
-          // Simple error code logging without knowledge base lookup
-          await firestoreService.logErrorCodeDetection(
-            userId: user.uid,
-            errorCode: errorCode,
-            userMessage: userMessage,
-            severity: 'unknown',
-            description: 'Error code detected',
-            intent: intent,
-          );
-        }
-      }
-    } catch (e) {
-      print('Error logging chat interaction: $e');
-      // Don't show error to user, just log it
-    }
   }
 
   String _addTechnicianFollowUp(String response, String userMessage, String language) {

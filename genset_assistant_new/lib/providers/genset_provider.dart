@@ -1,15 +1,17 @@
 import 'package:flutter/foundation.dart';
-import '../models/mirror_genset_model.dart';
-import '../services/mirror_api_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../models/genset_model.dart';
+import '../services/airtable_service.dart';
+import '../services/api_service.dart';
+import '../services/customer_mapping_service.dart';
 
 class GensetProvider with ChangeNotifier {
-  List<MirrorGenset> _gensets = [];
+  List<Genset> _gensets = [];
   bool _isLoading = false;
   String _error = '';
 
   // Getters
-  List<MirrorGenset> get gensets => _gensets;
+  List<Genset> get gensets => _gensets;
   bool get isLoading => _isLoading;
   String get error => _error;
   bool get hasError => _error.isNotEmpty;
@@ -17,24 +19,86 @@ class GensetProvider with ChangeNotifier {
 
   bool get _hasError => _error.isNotEmpty;
 
-  // Fetch gensets from SmartGen API using Firebase Auth email
+  // Fetch gensets from SmartGen API - strictly filter by user's assigned tokens only
   Future<void> fetchGensets() async {
     _isLoading = true;
     _error = '';
     notifyListeners();
 
     try {
-      final gensets = await MirrorApiService.fetchGensetsByFirebaseEmail();
+      // Fetch real gensets from SmartGen API
+      print('🔄 [Flutter] Fetching real gensets from SmartGen API...');
+      final allGensets = await AirtableService.fetchGensetsFromSmartGen();
 
-      _gensets = gensets;
+      if (allGensets.isEmpty) {
+        throw Exception('No gensets found in SmartGen API');
+      }
+
+      print('📊 [Flutter] SmartGen API returned ${allGensets.length} total gensets');
+      print('📱 [Flutter] All gensets: ${allGensets.map((g) => '${g.name} (${g.power})').toList()}');
+
+      // Filter gensets based on tokens from Database table (even without authentication)
+      List<Genset> displayGensets = allGensets;
+
+      try {
+        // Try to get user tokens from Database table
+        final userTokens = await ApiService.getCurrentUserUtokens();
+        if (userTokens != null && userTokens.isNotEmpty) {
+          print('🔑 [Flutter] User authenticated with ${userTokens.length} tokens: ${userTokens.map((t) => t.substring(0, 10) + '...').toList()}');
+
+          // Filter gensets to only show those assigned to this user
+          displayGensets = allGensets.where((genset) {
+            final gensetToken = genset.specifications?['token'] as String?;
+            return gensetToken != null && userTokens.contains(gensetToken);
+          }).toList();
+
+          print('✅ [Flutter] Filtered to ${displayGensets.length} gensets assigned to user');
+          if (displayGensets.isEmpty) {
+            print('⚠️ [Flutter] No gensets match user tokens');
+            throw Exception('No gensets found matching your assigned tokens. Please contact support.');
+          }
+        } else {
+          // User not authenticated - try to filter using tokens from Database table
+          print('🔄 [Flutter] User not authenticated, trying to fetch tokens from Database table...');
+
+          try {
+            // Always fetch fresh tokens from Database table
+            final customerMapping = await CustomerMappingService.fetchCustomerMappingByEmail(forceRefresh: true);
+            if (customerMapping != null && customerMapping.tokens.isNotEmpty) {
+              print('🔑 [Flutter] Found ${customerMapping.tokens.length} tokens in Database table: ${customerMapping.tokens.map((t) => t.substring(0, 10) + '...').toList()}');
+
+              displayGensets = allGensets.where((genset) {
+                final gensetToken = genset.specifications?['token'] as String?;
+                return gensetToken != null && customerMapping.tokens.contains(gensetToken);
+              }).toList();
+
+              print('🎯 [Flutter] Filtered to ${displayGensets.length} gensets using Database tokens');
+              if (displayGensets.isEmpty) {
+                print('⚠️ [Flutter] No gensets match Database tokens');
+                throw Exception('No gensets found matching your assigned tokens. Please contact support.');
+              }
+            } else {
+              print('⚠️ [Flutter] No tokens found in Database table');
+              throw Exception('No tokens found in Database table. Please contact support.');
+            }
+          } catch (e) {
+            print('⚠️ [Flutter] Could not fetch Database tokens: $e');
+            throw Exception('Unable to fetch tokens from Database table. Please contact support.');
+          }
+        }
+      } catch (e) {
+        print('ℹ️ [Flutter] Token filtering failed: $e');
+        throw Exception('Unable to filter gensets by your assigned tokens. Please contact support.');
+      }
+
+      _gensets = displayGensets;
       _error = '';
-      print('✅ [Flutter] Successfully loaded ${gensets.length} gensets from SmartGen API');
-      print('📱 [Flutter] Gensets: ${gensets.map((g) => '${g.gensetName} (${g.token})').toList()}');
+      print('🎯 [Flutter] Displaying ${displayGensets.length} gensets in Live Status');
 
     } catch (e) {
       _error = _getErrorMessage(e.toString());
       _gensets = [];
-      print('❌ [Flutter] Error fetching gensets from SmartGen API: $e');
+      print('❌ [Flutter] Error fetching gensets: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -53,7 +117,7 @@ class GensetProvider with ChangeNotifier {
   }
 
   // Get genset by index (safe access)
-  MirrorGenset? getGenset(int index) {
+  Genset? getGenset(int index) {
     if (index >= 0 && index < _gensets.length) {
       return _gensets[index];
     }
@@ -63,14 +127,19 @@ class GensetProvider with ChangeNotifier {
   // Get running gensets count
   int get runningGensetsCount {
     return _gensets.where((genset) =>
-      genset.statusName.toLowerCase().contains('running') ||
-      genset.statusName.toLowerCase().contains('online')
+      genset.status.toLowerCase().contains('running') ||
+      genset.status.toLowerCase().contains('online') ||
+      genset.status.toLowerCase().contains('active')
     ).length;
   }
 
-  // Get gensets with alarms
-  List<MirrorGenset> get gensetsWithAlarms {
-    return _gensets.where((genset) => genset.alarmList.isNotEmpty).toList();
+  // Get gensets with maintenance issues
+  List<Genset> get gensetsWithMaintenanceIssues {
+    return _gensets.where((genset) =>
+      genset.maintenanceStatus != null &&
+      (genset.maintenanceStatus!.toLowerCase().contains('due') ||
+       genset.maintenanceStatus!.toLowerCase().contains('overdue'))
+    ).toList();
   }
 
   // Helper method to format error messages

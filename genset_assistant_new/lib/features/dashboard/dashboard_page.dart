@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/genset_provider.dart';
-import '../../models/mirror_genset_model.dart';
+import '../../models/genset_model.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -160,16 +160,16 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildGensetCard(MirrorGenset genset, int index) {
+  Widget _buildGensetCard(Genset genset, int index) {
     // Determine status color
     Color statusColor;
     IconData statusIcon;
 
-    final status = genset.statusName.toLowerCase();
-    if (status.contains('running') || status.contains('online')) {
+    final status = genset.status.toLowerCase();
+    if (status.contains('running') || status.contains('online') || status.contains('active')) {
       statusColor = Colors.green;
       statusIcon = Icons.play_circle_filled;
-    } else if (status.contains('alarm') || status.contains('error')) {
+    } else if (status.contains('alarm') || status.contains('error') || status.contains('maintenance')) {
       statusColor = Colors.red;
       statusIcon = Icons.error;
     } else if (status.contains('standby') || status.contains('off')) {
@@ -212,7 +212,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        genset.gensetName,
+                        genset.name,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: Theme.of(context).colorScheme.onSurface,
@@ -229,7 +229,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           border: Border.all(color: statusColor.withOpacity(0.3)),
                         ),
                         child: Text(
-                          genset.statusName,
+                          genset.status,
                           style: TextStyle(
                             color: statusColor,
                             fontSize: 12,
@@ -250,37 +250,16 @@ class _DashboardPageState extends State<DashboardPage> {
               children: [
                 Expanded(
                   child: _buildDetailItem(
-                    'Token',
-                    genset.token,
-                    Icons.vpn_key,
-                  ),
-                ),
-                Expanded(
-                  child: _buildDetailItem(
-                    'SmartGen ID',
-                    genset.smartGenId.toString(),
+                    'ID',
+                    genset.id,
                     Icons.perm_identity,
                   ),
                 ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            Row(
-              children: [
                 Expanded(
                   child: _buildDetailItem(
-                    'Module',
-                    genset.moduleName,
-                    Icons.settings,
-                  ),
-                ),
-                Expanded(
-                  child: _buildDetailItem(
-                    'Host ID',
-                    genset.hostId,
-                    Icons.router,
+                    'Model',
+                    genset.model,
+                    Icons.build,
                   ),
                 ),
               ],
@@ -292,16 +271,37 @@ class _DashboardPageState extends State<DashboardPage> {
               children: [
                 Expanded(
                   child: _buildDetailItem(
-                    'Total Time',
-                    genset.totalTime,
-                    Icons.access_time,
+                    'Brand',
+                    genset.brand,
+                    Icons.business,
                   ),
                 ),
                 Expanded(
                   child: _buildDetailItem(
-                    'Address',
-                    genset.address,
+                    'Power',
+                    genset.power,
+                    Icons.flash_on,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                Expanded(
+                  child: _buildDetailItem(
+                    'Location',
+                    genset.location,
                     Icons.location_on,
+                  ),
+                ),
+                Expanded(
+                  child: _buildDetailItem(
+                    'Fuel',
+                    genset.fuel,
+                    Icons.local_gas_station,
                   ),
                 ),
               ],
@@ -314,73 +314,65 @@ class _DashboardPageState extends State<DashboardPage> {
                 Expanded(
                   child: _buildDetailItem(
                     'Customer',
-                    genset.customerName,
+                    genset.customer ?? 'N/A',
                     Icons.person,
                   ),
                 ),
                 Expanded(
                   child: _buildDetailItem(
-                    'Email',
-                    genset.email,
-                    Icons.email,
+                    'Category',
+                    genset.category,
+                    Icons.category,
                   ),
                 ),
               ],
             ),
 
-            // Alarms section (if any)
-            if (genset.alarmList.isNotEmpty) ...[
+            // Maintenance status section (if any)
+            if (genset.maintenanceStatus != null && genset.maintenanceStatus!.isNotEmpty) ...[
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                         genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                      ? Colors.orange.shade50
+                      : Colors.green.shade50,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(
+                    color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                           genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                        ? Colors.orange.shade200
+                        : Colors.green.shade200,
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.warning,
-                          color: Colors.red,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Active Alarms (${genset.alarmList.length})',
-                          style: TextStyle(
-                            color: Colors.red.shade700,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                    Icon(
+                      genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                      genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                          ? Icons.warning
+                          : Icons.check_circle,
+                      color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                             genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                          ? Colors.orange
+                          : Colors.green,
+                      size: 20,
                     ),
-                    const SizedBox(height: 8),
-                    ...genset.alarmList.take(3).map((alarm) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
+                    const SizedBox(width: 8),
+                    Expanded(
                       child: Text(
-                        '• $alarm',
+                        'Maintenance: ${genset.maintenanceStatus}',
                         style: TextStyle(
-                          color: Colors.red.shade600,
-                          fontSize: 12,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    )),
-                    if (genset.alarmList.length > 3)
-                      Text(
-                        '... and ${genset.alarmList.length - 3} more',
-                        style: TextStyle(
-                          color: Colors.red.shade500,
-                          fontSize: 12,
-                          fontStyle: FontStyle.italic,
+                          color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                                 genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                              ? Colors.orange.shade700
+                              : Colors.green.shade700,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
                         ),
                       ),
+                    ),
                   ],
                 ),
               ),

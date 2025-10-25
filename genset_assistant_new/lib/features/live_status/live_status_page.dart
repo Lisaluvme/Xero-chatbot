@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/genset_provider.dart';
-import '../../models/mirror_genset_model.dart';
+import '../../models/genset_model.dart';
 
 class LiveStatusPage extends StatefulWidget {
   const LiveStatusPage({super.key});
@@ -19,7 +19,7 @@ class _LiveStatusPageState extends State<LiveStatusPage> {
     });
   }
 
-  void showGensetDetails(MirrorGenset genset) {
+  void showGensetDetails(Genset genset) {
     showDialog(
       context: context,
       builder: (context) {
@@ -52,7 +52,7 @@ class _LiveStatusPageState extends State<LiveStatusPage> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          genset.gensetName.isNotEmpty ? genset.gensetName : "Unknown Genset",
+                          genset.name.isNotEmpty ? genset.name : "Unknown Genset",
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 20,
@@ -79,10 +79,10 @@ class _LiveStatusPageState extends State<LiveStatusPage> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: _getStatusColor(genset.statusName).withOpacity(0.1),
+                            color: _getStatusColor(genset.status).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: _getStatusColor(genset.statusName),
+                              color: _getStatusColor(genset.status),
                               width: 1,
                             ),
                           ),
@@ -90,15 +90,15 @@ class _LiveStatusPageState extends State<LiveStatusPage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                _getStatusIcon(genset.statusName),
-                                color: _getStatusColor(genset.statusName),
+                                _getStatusIcon(genset.status),
+                                color: _getStatusColor(genset.status),
                                 size: 16,
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                genset.statusName,
+                                genset.status,
                                 style: TextStyle(
-                                  color: _getStatusColor(genset.statusName),
+                                  color: _getStatusColor(genset.status),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -109,169 +109,129 @@ class _LiveStatusPageState extends State<LiveStatusPage> {
                         const SizedBox(height: 20),
 
                         // Basic Info Cards
-                        _buildInfoCard("Token", genset.token, Icons.vpn_key),
-                        _buildInfoCard("SmartGen ID", genset.smartGenId.toString(), Icons.perm_identity),
-                        _buildInfoCard("Module", "${genset.moduleName} (${genset.moduleId})", Icons.settings),
-                        _buildInfoCard("Host ID", genset.hostId, Icons.router),
+                        _buildInfoCard("ID", genset.id, Icons.perm_identity),
+                        _buildInfoCard("Model", genset.model, Icons.build),
+                        _buildInfoCard("Brand", genset.brand, Icons.business),
+                        _buildInfoCard("Power", genset.power, Icons.flash_on),
 
                         const SizedBox(height: 16),
 
-                        // Location
-                        _buildInfoCard("Address", genset.address, Icons.location_on),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildInfoCard("Latitude", genset.latitude.toStringAsFixed(6), Icons.gps_fixed),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: _buildInfoCard("Longitude", genset.longitude.toStringAsFixed(6), Icons.gps_fixed),
-                            ),
-                          ],
-                        ),
+                        // Location and Fuel
+                        _buildInfoCard("Location", genset.location, Icons.location_on),
+                        _buildInfoCard("Fuel Type", genset.fuel, Icons.local_gas_station),
 
                         const SizedBox(height: 16),
 
-                        // Runtime
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.blue.shade200),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(Icons.access_time, color: Colors.blue.shade700),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    "Runtime Information",
-                                    style: TextStyle(
-                                      color: Colors.blue.shade700,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "Total Time",
-                                          style: TextStyle(
-                                            color: Colors.blue.shade600,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        Text(
-                                          genset.totalTime,
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.black87,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "Today",
-                                          style: TextStyle(
-                                            color: Colors.blue.shade600,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        Text(
-                                          genset.dayTime,
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.black87,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Customer Info
-                        _buildInfoCard("Customer", genset.customerName, Icons.person),
-                        _buildInfoCard("Email", genset.email, Icons.email),
-
-                        const SizedBox(height: 16),
-
-                        // Alarms
-                        if (genset.alarmList.isNotEmpty) ...[
+                        // Specifications
+                        if (genset.specifications != null && genset.specifications!.isNotEmpty) ...[
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.red.shade50,
+                              color: Colors.blue.shade50,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.red.shade200),
+                              border: Border.all(color: Colors.blue.shade200),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
                                   children: [
-                                    Icon(Icons.warning, color: Colors.red.shade700),
+                                    Icon(Icons.settings, color: Colors.blue.shade700),
                                     const SizedBox(width: 8),
                                     Text(
-                                      "Active Alarms (${genset.alarmList.length})",
+                                      "Specifications",
                                       style: TextStyle(
-                                        color: Colors.red.shade700,
+                                        color: Colors.blue.shade700,
                                         fontWeight: FontWeight.w600,
                                         fontSize: 16,
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 8),
-                                ...genset.alarmList.take(5).map((alarm) => Padding(
+                                const SizedBox(height: 12),
+                                ...genset.specifications!.entries.take(5).map((entry) => Padding(
                                   padding: const EdgeInsets.only(bottom: 4),
                                   child: Row(
                                     children: [
-                                      Icon(Icons.error_outline, color: Colors.red.shade500, size: 16),
-                                      const SizedBox(width: 8),
                                       Expanded(
+                                        flex: 2,
                                         child: Text(
-                                          alarm.toString(),
+                                          "${entry.key}:",
                                           style: TextStyle(
-                                            color: Colors.red.shade600,
-                                            fontSize: 14,
+                                            color: Colors.blue.shade600,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        flex: 3,
+                                        child: Text(
+                                          entry.value.toString(),
+                                          style: const TextStyle(
+                                            color: Colors.black87,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                       ),
                                     ],
                                   ),
                                 )),
-                                if (genset.alarmList.length > 5)
-                                  Text(
-                                    "... and ${genset.alarmList.length - 5} more",
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Customer Info
+                        _buildInfoCard("Customer", genset.customer ?? 'N/A', Icons.person),
+                        _buildInfoCard("Category", genset.category, Icons.category),
+
+                        const SizedBox(height: 16),
+
+                        // Maintenance Status
+                        if (genset.maintenanceStatus != null && genset.maintenanceStatus!.isNotEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                                     genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                                  ? Colors.orange.shade50
+                                  : Colors.green.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                                       genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                                    ? Colors.orange.shade200
+                                    : Colors.green.shade200,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                                  genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                                      ? Icons.warning
+                                      : Icons.check_circle,
+                                  color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                                         genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                                      ? Colors.orange
+                                      : Colors.green,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    "Maintenance: ${genset.maintenanceStatus}",
                                     style: TextStyle(
-                                      color: Colors.red.shade500,
-                                      fontSize: 12,
-                                      fontStyle: FontStyle.italic,
+                                      color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                                             genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                                          ? Colors.orange.shade700
+                                          : Colors.green.shade700,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
                                     ),
                                   ),
+                                ),
                               ],
                             ),
                           ),
@@ -288,7 +248,7 @@ class _LiveStatusPageState extends State<LiveStatusPage> {
                                 Icon(Icons.check_circle, color: Colors.green.shade700),
                                 const SizedBox(width: 8),
                                 Text(
-                                  "No Active Alarms",
+                                  "Maintenance Status: Good",
                                   style: TextStyle(
                                     color: Colors.green.shade700,
                                     fontWeight: FontWeight.w600,
@@ -351,9 +311,9 @@ class _LiveStatusPageState extends State<LiveStatusPage> {
     );
   }
 
-  Widget _buildGensetCard(MirrorGenset genset) {
-    final statusColor = _getStatusColor(genset.statusName);
-    final statusIcon = _getStatusIcon(genset.statusName);
+  Widget _buildGensetCard(Genset genset) {
+    final statusColor = _getStatusColor(genset.status);
+    final statusIcon = _getStatusIcon(genset.status);
 
     return GestureDetector(
       onTap: () => showGensetDetails(genset),
@@ -396,7 +356,7 @@ class _LiveStatusPageState extends State<LiveStatusPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          genset.gensetName.isNotEmpty ? genset.gensetName : "Unknown Genset",
+                          genset.name.isNotEmpty ? genset.name : "Unknown Genset",
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -412,7 +372,7 @@ class _LiveStatusPageState extends State<LiveStatusPage> {
                             border: Border.all(color: statusColor.withOpacity(0.3)),
                           ),
                           child: Text(
-                            genset.statusName,
+                            genset.status,
                             style: TextStyle(
                               color: statusColor,
                               fontSize: 12,
@@ -437,10 +397,10 @@ class _LiveStatusPageState extends State<LiveStatusPage> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildCardDetail("Token", genset.token, Icons.vpn_key),
+                    child: _buildCardDetail("ID", genset.id, Icons.perm_identity),
                   ),
                   Expanded(
-                    child: _buildCardDetail("Runtime", genset.totalTime, Icons.access_time),
+                    child: _buildCardDetail("Power", genset.power, Icons.flash_on),
                   ),
                 ],
               ),
@@ -450,33 +410,54 @@ class _LiveStatusPageState extends State<LiveStatusPage> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildCardDetail("Customer", genset.customerName, Icons.person),
+                    child: _buildCardDetail("Customer", genset.customer ?? 'N/A', Icons.person),
                   ),
                   Expanded(
-                    child: _buildCardDetail("Alarms", genset.alarmList.length.toString(), Icons.warning),
+                    child: _buildCardDetail("Location", genset.location, Icons.location_on),
                   ),
                 ],
               ),
 
-              // Alarm indicator
-              if (genset.alarmList.isNotEmpty) ...[
+              // Maintenance indicator
+              if (genset.maintenanceStatus != null && genset.maintenanceStatus!.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade50,
+                    color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                           genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                        ? Colors.orange.shade50
+                        : Colors.green.shade50,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red.shade200),
+                    border: Border.all(
+                      color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                             genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                          ? Colors.orange.shade200
+                          : Colors.green.shade200,
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.warning, color: Colors.red.shade600, size: 16),
+                      Icon(
+                        genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                        genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                            ? Icons.warning
+                            : Icons.check_circle,
+                        color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                               genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                            ? Colors.orange.shade600
+                            : Colors.green.shade600,
+                        size: 16,
+                      ),
                       const SizedBox(width: 6),
                       Text(
-                        "${genset.alarmList.length} active alarm${genset.alarmList.length > 1 ? 's' : ''}",
+                        genset.maintenanceStatus!,
                         style: TextStyle(
-                          color: Colors.red.shade700,
+                          color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                                 genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                              ? Colors.orange.shade700
+                              : Colors.green.shade700,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -586,9 +567,28 @@ class _LiveStatusPageState extends State<LiveStatusPage> {
         if (gensetProvider.gensets.isEmpty) {
           return Scaffold(
             body: Center(
-              child: Text(
-                "No genset data found.",
-                style: Theme.of(context).textTheme.headlineSmall,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.electrical_services, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text(
+                    "No gensets assigned to your account",
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Contact support to get access to your gensets",
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => gensetProvider.fetchGensets(),
+                    child: const Text("Retry"),
+                  ),
+                ],
               ),
             ),
           );

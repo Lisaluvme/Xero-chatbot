@@ -11,8 +11,6 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -25,7 +23,7 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  Future<void> _signInWithEmail() async {
+  Future<void> _signIn() async {
     final cleanEmail = _emailController.text.trim().toLowerCase();
     final cleanPassword = _passwordController.text.trim();
 
@@ -38,21 +36,8 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() => _isLoading = true);
     try {
-      final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: cleanEmail,
-        password: cleanPassword,
-      );
-
-      final User? user = userCredential.user;
-      if (user != null) {
-        await _handlePostLogin(cleanEmail);
-      }
-    } on FirebaseAuthException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message ?? 'Sign-in failed')),
-        );
-      }
+      // For now, just navigate to home - authentication is handled by Airtable
+      await _handlePostLogin(cleanEmail);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -69,36 +54,59 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        if (mounted) {
-          setState(() => _isLoading = false);
-        }
-        return;
-      }
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
+      // Simple Google Sign In - just get the email
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        scopes: ['email'],
       );
 
-      final UserCredential userCredential = await _auth.signInWithCredential(credential);
-      final User? user = userCredential.user;
+      try {
+        // Try silent sign in first
+        GoogleSignInAccount? googleUser = await googleSignIn.signInSilently();
+        if (googleUser == null) {
+          // If silent fails, show sign in dialog
+          googleUser = await googleSignIn.signIn();
+        }
 
-      if (user != null) {
-        await _handlePostLogin(user.email!.trim().toLowerCase());
-      }
-    } on FirebaseAuthException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message ?? 'Google Sign-In failed')),
-        );
+        if (googleUser == null) {
+          // User cancelled
+          setState(() => _isLoading = false);
+          return;
+        }
+
+        // Just use the email from Google account
+        if (googleUser.email.isNotEmpty) {
+          print('✅ [Flutter] Google Sign In successful: ${googleUser.email}');
+          await _handlePostLogin(googleUser.email);
+        } else {
+          throw Exception('No email found in Google account');
+        }
+      } catch (googleError) {
+        print('❌ [Flutter] Google Sign In error: $googleError');
+        // Clean up
+        try {
+          await googleSignIn.signOut();
+        } catch (e) {
+          print('Error signing out: $e');
+        }
+        throw googleError;
       }
     } catch (e) {
+      print('❌ [Flutter] Google Sign In error: $e');
       if (mounted) {
+        String errorMessage = 'Google Sign In failed';
+        if (e.toString().contains('network')) {
+          errorMessage = 'Network error. Please check your connection.';
+        } else if (e.toString().contains('sign_in_required')) {
+          errorMessage = 'Google Sign In is required.';
+        } else if (e.toString().contains('canceled')) {
+          errorMessage = 'Sign in was cancelled.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sign-in failed: ${e.toString()}')),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -110,16 +118,13 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _handlePostLogin(String email) async {
     try {
-      // Note: Token initialization is now handled by GensetProvider when fetching gensets
-
-      // Navigate to home page after successful token initialization
+      // Navigate to home page
       if (mounted) {
-        // Use named route to navigate to home
         Navigator.of(context).pushReplacementNamed('/');
       }
     } catch (e) {
       if (mounted) {
-        _showErrorDialog('Token Error', 'Failed to initialize tokens: ${e.toString()}');
+        _showErrorDialog('Error', 'Failed to proceed: ${e.toString()}');
       }
     }
   }
@@ -236,7 +241,7 @@ class _LoginPageState extends State<LoginPage> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _signInWithEmail,
+                  onPressed: _isLoading ? null : _signIn,
                   child: _isLoading
                       ? const SizedBox(
                     height: 20,
@@ -247,7 +252,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   )
                       : const Text(
-                    'Sign In',
+                    'Continue',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -256,39 +261,63 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
-              Row(
-                children: const [
-                  Expanded(child: Divider(thickness: 1)),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('or continue with'),
-                  ),
-                  Expanded(child: Divider(thickness: 1)),
-                ],
-              ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+
+              // Google Sign In Button
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: OutlinedButton.icon(
                   onPressed: _isLoading ? null : _signInWithGoogle,
-                  icon: Icon(Icons.g_mobiledata, color: Colors.blue, size: 24),
+                  icon: Image.asset(
+                    'assets/icons/google_logo.png',
+                    height: 24,
+                    width: 24,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.account_circle,
+                      size: 24,
+                    ),
+                  ),
                   label: const Text(
                     'Continue with Google',
                     style: TextStyle(
-                      color: Colors.blue,
                       fontSize: 16,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.black12),
+                    side: const BorderSide(color: Colors.grey),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     backgroundColor: Colors.white,
                   ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+              const Row(
+                children: [
+                  Expanded(child: Divider(color: Colors.grey)),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'OR',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: Colors.grey)),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+              const Text(
+                'Authentication is now handled through Airtable.\nContact your administrator for account management.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFFB3B3B3),
                 ),
               ),
               const SizedBox(height: 24),

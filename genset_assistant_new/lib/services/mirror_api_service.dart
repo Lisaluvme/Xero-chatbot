@@ -2,8 +2,6 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/mirror_genset_model.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'customer_mapping_service.dart';
 
 class SmartGenApiResponse {
   final int code;
@@ -155,53 +153,6 @@ class MirrorApiService {
   static const String _smartGenBaseUrl = 'https://www.smartgencloudplus.com';
   static final String _utoken = dotenv.env['SMARTGEN_UTOKEN'] ?? 'bebf6914640ec3ed6bf00398fb7969da';
 
-  static Future<List<MirrorGenset>> fetchGensetsByFirebaseEmail() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) throw Exception("User not logged in.");
-
-    // First, get the customer mapping to find associated tokens
-    final customerMapping = await CustomerMappingService.fetchCustomerMappingByEmail();
-    if (customerMapping == null) {
-      print('❌ [Flutter] No customer mapping found for email: ${user.email}');
-      return []; // No mapping found for this email
-    }
-
-    if (customerMapping.tokens.isEmpty) {
-      print('⚠️ [Flutter] Customer mapping found but no tokens assigned');
-      return []; // No gensets assigned to this user
-    }
-
-    print('✅ [Flutter] Found ${customerMapping.tokens.length} tokens: ${customerMapping.tokens}');
-
-    // Call SmartGen API
-    final url = '$_smartGenBaseUrl/yewu/third/genset/list?utoken=$_utoken&page=1&per_page=100';
-
-    print('🔗 [Flutter] Calling SmartGen API: $url');
-
-    final response = await http.get(Uri.parse(url));
-
-    if (response.statusCode != 200) {
-      print('❌ [Flutter] SmartGen API error: ${response.statusCode} - ${response.body}');
-      throw Exception('Failed to load gensets: ${response.body}');
-    }
-
-    final data = jsonDecode(response.body);
-    final apiResponse = SmartGenApiResponse.fromJson(data);
-
-    print('📊 [Flutter] SmartGen API returned ${apiResponse.data.total} total gensets');
-    print('📋 [Flutter] SmartGen API returned ${apiResponse.data.list.length} gensets in list');
-
-    // Filter gensets by tokens from customer mapping
-    final filteredGensets = apiResponse.data.list
-        .where((genset) => customerMapping.tokens.contains(genset.token))
-        .toList();
-
-    print('🔍 [Flutter] After token filtering: ${filteredGensets.length} gensets match user tokens');
-
-    if (filteredGensets.isNotEmpty) {
-      print('📋 [Flutter] First matching genset: ${filteredGensets.first.gsname} (${filteredGensets.first.token})');
-    }
-
-    return filteredGensets.map((genset) => genset.toMirrorGenset()).toList();
-  }
+  // Mirror API service - Firebase integration removed, now using Airtable for data management
+  // This service is kept for potential future SmartGen API integration
 }
