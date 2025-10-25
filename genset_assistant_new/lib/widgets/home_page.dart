@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../features/learn/learn_page.dart';
 import '../features/maintenance/maintenance_page.dart';
 import '../features/troubleshooting/troubleshooting_page.dart';
@@ -16,7 +15,6 @@ import '../features/products/products_page.dart';
 import '../features/products/product_details_page.dart';
 import '../features/auth/login_page.dart';
 import '../services/wordpress_service.dart';
-import '../services/airtable_service.dart';
 import '../models/genset_model.dart';
 import '../providers/genset_provider.dart';
 
@@ -165,11 +163,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     }
   }
 
-  /// Show account dialog with logout option
-  void _showLoginDialog(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    final userEmail = user?.email ?? 'Not signed in';
-
+  /// Show simple account menu
+  void _showAccountMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -182,65 +177,48 @@ class _HomePageWidgetState extends State<HomePageWidget> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                "Account Settings",
+                "Account",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.email, color: Colors.blue),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        userEmail,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.person, color: Color(0xFF1E3A8A)),
+                title: const Text("Profile"),
+                onTap: () {
+                  Navigator.pop(context);
+                  // Navigate to profile page (implement when needed)
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Profile page coming soon")),
+                  );
+                },
               ),
-              const SizedBox(height: 16),
-              const Text(
-                "Authentication is now handled through Firebase & Airtable.\nContact your administrator for account management.",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ListTile(
+                leading: const Icon(Icons.settings, color: Color(0xFF1E3A8A)),
+                title: const Text("Settings"),
+                onTap: () {
+                  Navigator.pop(context);
+                  // Navigate to settings page (implement when needed)
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Settings page coming soon")),
+                  );
+                },
               ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: const Text("Close"),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _logout(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: const Text(
-                        "Logout",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
+              ListTile(
+                leading: const Icon(Icons.help, color: Color(0xFF1E3A8A)),
+                title: const Text("Help & Support"),
+                onTap: () {
+                  Navigator.pop(context);
+                  // Navigate to help page (implement when needed)
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Help page coming soon")),
+                  );
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.logout, color: Colors.red),
+                title: const Text("Logout", style: TextStyle(color: Colors.red)),
+                onTap: () => _logout(context),
               ),
             ],
           ),
@@ -1222,7 +1200,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                           icon: const Icon(Icons.send, color: Colors.white),
                         ),
                         IconButton(
-                          onPressed: () => _showLoginDialog(context),
+                          onPressed: () => _showAccountMenu(context),
                           icon: const Icon(Icons.account_circle,
                               color: Colors.white),
                         ),
