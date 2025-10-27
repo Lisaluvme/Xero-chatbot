@@ -260,14 +260,14 @@ class _LiveStatusPageState extends State<LiveStatusPage>
             crossAxisCount: 2,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: 2.5,
+            childAspectRatio: 2.8,
             children: [
               _buildInfoItem("ID", genset.id, Icons.perm_identity, const Color(0xFF1E3A8A)),
               _buildInfoItem("Power", genset.power, Icons.flash_on, const Color(0xFF14B8A6)),
               _buildInfoItem("Brand", genset.brand, Icons.business, const Color(0xFF7C3AED)),
               _buildInfoItem("Model", genset.model, Icons.build, const Color(0xFFF59E0B)),
               _buildInfoItem("Location", genset.location, Icons.location_on, const Color(0xFFEF4444)),
-              _buildInfoItem("Fuel Type", genset.fuel, Icons.local_gas_station, const Color(0xFF8B5CF6)),
+              _buildInfoItem("Customer", genset.customer ?? 'N/A', Icons.person, const Color(0xFF8B5CF6)),
             ],
           ),
         ],
@@ -601,11 +601,11 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                             Row(
                               children: [
                                 Expanded(
-                                  child: _buildCardInfo("Customer", genset.customer ?? 'N/A', Icons.person),
+                                  child: _buildCardInfo("Customer", _getCustomerName(genset), Icons.person),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
-                                  child: _buildCardInfo("Location", genset.location, Icons.location_on),
+                                  child: _buildCardInfo("Location", genset.location ?? 'N/A', Icons.location_on),
                                 ),
                               ],
                             ),
@@ -736,6 +736,12 @@ class _LiveStatusPageState extends State<LiveStatusPage>
       return Icons.pause_circle_filled;
     }
     return Icons.help;
+  }
+
+  String _getCustomerName(Genset genset) {
+    // Try to get customer name from the database mapping
+    // For now, return the customer field or a default value
+    return genset.customer ?? 'N/A';
   }
 
   @override

@@ -165,37 +165,140 @@ class _HomePageState extends State<HomePage> {
         child: _pages[_selectedIndex],
       ),
       bottomNavigationBar: Container(
-        margin: const EdgeInsets.all(12),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: const BorderRadius.all(Radius.circular(24)),
+          borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+            BoxShadow(
+              color: const Color(0xFF1E3A8A).withOpacity(0.1),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: const BorderRadius.all(Radius.circular(24)),
+          borderRadius: BorderRadius.circular(30),
           child: BottomNavigationBar(
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
-              BottomNavigationBarItem(icon: Icon(Icons.store_rounded), label: 'Products'),
-              BottomNavigationBarItem(icon: Icon(Icons.library_books_rounded), label: 'Learn'),
-              BottomNavigationBarItem(icon: Icon(Icons.build_circle_rounded), label: 'Service'),
-              BottomNavigationBarItem(icon: Icon(Icons.visibility_rounded), label: 'Live'),
-              BottomNavigationBarItem(icon: Icon(Icons.support_agent_rounded), label: 'Contact'),
+            items: [
+              BottomNavigationBarItem(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _selectedIndex == 0
+                        ? const Color(0xFF1E3A8A).withOpacity(0.2)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.home_rounded,
+                    size: 22,
+                  ),
+                ),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _selectedIndex == 1
+                        ? const Color(0xFF1E3A8A).withOpacity(0.2)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.store_rounded,
+                    size: 22,
+                  ),
+                ),
+                label: 'Products',
+              ),
+              BottomNavigationBarItem(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _selectedIndex == 2
+                        ? const Color(0xFF1E3A8A).withOpacity(0.2)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.library_books_rounded,
+                    size: 22,
+                  ),
+                ),
+                label: 'Learn',
+              ),
+              BottomNavigationBarItem(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _selectedIndex == 3
+                        ? const Color(0xFF1E3A8A).withOpacity(0.2)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.build_circle_rounded,
+                    size: 22,
+                  ),
+                ),
+                label: 'Service',
+              ),
+              BottomNavigationBarItem(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _selectedIndex == 4
+                        ? const Color(0xFF1E3A8A).withOpacity(0.2)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.visibility_rounded,
+                    size: 22,
+                  ),
+                ),
+                label: 'Live',
+              ),
+              BottomNavigationBarItem(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _selectedIndex == 5
+                        ? const Color(0xFF1E3A8A).withOpacity(0.2)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.support_agent_rounded,
+                    size: 22,
+                  ),
+                ),
+                label: 'Contact',
+              ),
             ],
             currentIndex: _selectedIndex,
-            selectedItemColor: const Color(0xFF1A3C6E),
-            unselectedItemColor: const Color(0xFF0F172A),
+            selectedItemColor: const Color(0xFF1E3A8A),
+            unselectedItemColor: Colors.grey.shade600,
             onTap: _onItemTapped,
             type: BottomNavigationBarType.fixed,
             backgroundColor: Colors.white,
             elevation: 0,
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+            selectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 11,
+            ),
+            showUnselectedLabels: true,
           ),
         ),
       ),
