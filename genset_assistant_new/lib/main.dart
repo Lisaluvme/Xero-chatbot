@@ -38,7 +38,7 @@ class GensetAssistantApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => gp.GensetProvider()),
       ],
       child: MaterialApp(
-        title: 'Genset Assistant',
+        title: 'Mega Genset 99',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           brightness: Brightness.light,
