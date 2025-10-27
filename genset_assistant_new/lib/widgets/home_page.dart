@@ -15,6 +15,7 @@ import '../features/ai_chat/ai_chat_page.dart';
 import '../features/products/products_page.dart';
 import '../features/products/product_details_page.dart';
 import '../features/auth/login_page.dart';
+import '../features/auth/profile_page.dart';
 import '../services/wordpress_service.dart';
 import '../services/airtable_service.dart';
 import '../models/genset_model.dart';
@@ -1282,9 +1283,13 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                           icon: const Icon(Icons.send, color: Colors.white),
                         ),
                         IconButton(
-                          onPressed: () => _showAccountMenu(context),
-                          icon: const Icon(Icons.account_circle,
-                              color: Colors.white),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const ProfilePage()),
+                            );
+                          },
+                          icon: const Icon(Icons.account_circle, color: Colors.white),
                         ),
                       ],
                     ),
