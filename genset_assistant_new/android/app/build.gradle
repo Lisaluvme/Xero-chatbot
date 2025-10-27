@@ -12,7 +12,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.company.genset_assistant_new"
+    namespace = "com.company.megagenset99"
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 
@@ -23,7 +23,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.company.genset_assistant_new"
+        applicationId = "com.company.megagenset99"
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion 36
         versionCode = flutter.versionCode
