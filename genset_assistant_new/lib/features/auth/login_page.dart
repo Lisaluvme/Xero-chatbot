@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'register_page.dart';
+import '../../services/airtable_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -35,12 +37,36 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() => _isLoading = true);
     try {
-      // For now, just navigate to home - authentication is handled by Airtable
-      await _handlePostLogin(cleanEmail);
+      print('🔐 Attempting to sign in with email: $cleanEmail');
+
+      // Sign in with Firebase Auth
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: cleanEmail,
+        password: cleanPassword,
+      );
+
+      print('✅ Sign in successful!');
+      // Navigation will be handled by StreamBuilder in main.dart
     } catch (e) {
+      print('❌ Sign in failed: $e');
       if (mounted) {
+        String errorMessage = 'Sign-in failed';
+        if (e.toString().contains('user-not-found')) {
+          errorMessage = 'No user found with this email. Please register first.';
+        } else if (e.toString().contains('wrong-password')) {
+          errorMessage = 'Incorrect password. Please try again.';
+        } else if (e.toString().contains('invalid-email')) {
+          errorMessage = 'Invalid email format';
+        } else if (e.toString().contains('network-request-failed')) {
+          errorMessage = 'Network error. Please check your connection';
+        } else if (e.toString().contains('too-many-requests')) {
+          errorMessage = 'Too many failed attempts. Please try again later.';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sign-in failed: ${e.toString()}')),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -53,54 +79,68 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
     try {
-      // Simple Google Sign In - just get the email
-      final GoogleSignIn googleSignIn = GoogleSignIn(
-        scopes: ['email'],
-      );
+      // Google Sign In with Firebase Auth - handles both sign up and sign in automatically
+      print('🔐 Starting Google Sign In...');
 
-      try {
-        // Try silent sign in first
-        GoogleSignInAccount? googleUser = await googleSignIn.signInSilently();
-        if (googleUser == null) {
-          // If silent fails, show sign in dialog
-          googleUser = await googleSignIn.signIn();
-        }
+      // Use Firebase Auth's built-in Google Sign-In
+      final googleProvider = GoogleAuthProvider();
+      googleProvider.addScope('email');
+      googleProvider.addScope('profile');
 
-        if (googleUser == null) {
-          // User cancelled
-          setState(() => _isLoading = false);
-          return;
-        }
+      print('🔐 Attempting Firebase Google Sign In...');
 
-        // Just use the email from Google account
-        if (googleUser.email.isNotEmpty) {
-          print('✅ [Flutter] Google Sign In successful: ${googleUser.email}');
-          await _handlePostLogin(googleUser.email);
+      // This will automatically handle both sign-up and sign-in
+      final userCredential = await FirebaseAuth.instance.signInWithProvider(googleProvider);
+
+      if (userCredential.user != null) {
+        print('✅ Firebase Google sign in successful: ${userCredential.user?.email}');
+
+        // Check if user has tagging in Airtable
+        final customerRecord = await AirtableService.getCustomerByEmail(userCredential.user!.email!);
+
+        if (customerRecord != null && customerRecord.hasValidTokens) {
+          // User has tagging - show gensets
+          print('✅ User has Airtable tagging - gensets will be available');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Successfully signed in with Google! Gensets will be available.'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
         } else {
-          throw Exception('No email found in Google account');
+          // User doesn't have tagging - still signed in but no gensets
+          print('⚠️ User signed in but no Airtable tagging found');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Successfully signed in with Google! Contact support to get access to gensets.'),
+                backgroundColor: Colors.blue,
+              ),
+            );
+          }
         }
-      } catch (googleError) {
-        print('❌ [Flutter] Google Sign In error: $googleError');
-        // Clean up
-        try {
-          await googleSignIn.signOut();
-        } catch (e) {
-          print('Error signing out: $e');
-        }
-        throw googleError;
+
+        print('✅ Google Sign In completed successfully');
       }
+
+      // Navigation will be handled by StreamBuilder in main.dart
     } catch (e) {
-      print('❌ [Flutter] Google Sign In error: $e');
+      print('❌ Google Sign In failed: $e');
       if (mounted) {
         String errorMessage = 'Google Sign In failed';
-        if (e.toString().contains('network')) {
+        if (e.toString().contains('invalid-cert-hash')) {
+          errorMessage = 'Firebase project not configured for Google Sign-In. Please check Firebase console settings.';
+        } else if (e.toString().contains('network')) {
           errorMessage = 'Network error. Please check your connection.';
-        } else if (e.toString().contains('sign_in_required')) {
-          errorMessage = 'Google Sign In is required.';
         } else if (e.toString().contains('canceled')) {
           errorMessage = 'Sign in was cancelled.';
+        } else if (e.toString().contains('popup')) {
+          errorMessage = 'Sign in popup was blocked. Please allow popups and try again.';
+        } else if (e.toString().contains('web')) {
+          errorMessage = 'Google Sign In requires web context. Please check your configuration.';
         }
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
@@ -145,6 +185,19 @@ class _LoginPageState extends State<LoginPage> {
         );
       },
     );
+  }
+
+  Future<String> _getAuthDebugInfo() async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        return 'User: ${currentUser.email} (UID: ${currentUser.uid})';
+      } else {
+        return 'No user currently signed in';
+      }
+    } catch (e) {
+      return 'Auth Debug Error: $e';
+    }
   }
 
   @override
@@ -236,37 +289,12 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _signIn,
-                  child: _isLoading
-                      ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                      : const Text(
-                    'Continue',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
 
-              // Google Sign In Button
+              // Google Sign In Button (Primary)
               SizedBox(
                 width: double.infinity,
                 height: 50,
-                child: OutlinedButton.icon(
+                child: ElevatedButton.icon(
                   onPressed: _isLoading ? null : _signInWithGoogle,
                   icon: Image.asset(
                     'assets/icons/google_logo.png',
@@ -275,10 +303,44 @@ class _LoginPageState extends State<LoginPage> {
                     errorBuilder: (context, error, stackTrace) => const Icon(
                       Icons.account_circle,
                       size: 24,
+                      color: Colors.white,
                     ),
                   ),
                   label: const Text(
                     'Continue with Google',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4285F4), // Google Blue
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Email Sign In Button (Secondary)
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton(
+                  onPressed: _isLoading ? null : _signIn,
+                  child: _isLoading
+                      ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                    ),
+                  )
+                      : const Text(
+                    'Continue with Email',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -312,12 +374,40 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 24),
               const Text(
-                'Authentication is now handled through Airtable.\nContact your administrator for account management.',
+                'Sign in with your email and password or use Google.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
                   color: Color(0xFFB3B3B3),
                 ),
+              ),
+
+              // Debug info (remove in production)
+              const SizedBox(height: 16),
+              FutureBuilder<String>(
+                future: _getAuthDebugInfo(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    return Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Text(
+                        'Debug: ${snapshot.data}',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey,
+                          fontFamily: 'monospace',
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
               ),
               const SizedBox(height: 24),
               Row(

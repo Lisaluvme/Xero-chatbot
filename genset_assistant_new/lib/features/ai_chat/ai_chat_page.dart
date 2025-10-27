@@ -73,7 +73,10 @@ class _AiChatPageState extends State<AiChatPage> {
   void initState() {
     super.initState();
     _initializeChat();
-    _initializeVoiceFeatures();
+    // Delay TTS initialization to avoid blocking main thread
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeVoiceFeatures();
+    });
   }
 
   Future<void> _initializeChat() async {

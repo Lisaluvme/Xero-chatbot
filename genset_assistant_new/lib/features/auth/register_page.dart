@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -49,15 +50,26 @@ class _RegisterPageState extends State<RegisterPage> {
 
     setState(() => _isLoading = true);
     try {
-      // For now, just navigate to home - registration is handled by Airtable admin
-      await Future.delayed(const Duration(seconds: 1)); // Simulate processing
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/');
-      }
+      // Create user with Firebase Auth
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      // Navigation will be handled by StreamBuilder in main.dart
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'Registration failed';
+        if (e.toString().contains('email-already-in-use')) {
+          errorMessage = 'An account with this email already exists';
+        } else if (e.toString().contains('weak-password')) {
+          errorMessage = 'Password is too weak';
+        } else if (e.toString().contains('invalid-email')) {
+          errorMessage = 'Invalid email format';
+        } else if (e.toString().contains('network-request-failed')) {
+          errorMessage = 'Network error. Please check your connection';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Registration failed: ${e.toString()}')),
+          SnackBar(content: Text(errorMessage)),
         );
       }
     } finally {
@@ -112,7 +124,7 @@ class _RegisterPageState extends State<RegisterPage> {
               const SizedBox(height: 8),
               // Subtitle
               const Text(
-                'Sign up to get started',
+                'Create your account to access your gensets',
                 style: TextStyle(
                   fontSize: 16,
                   color: Color(0xFFB3B3B3),

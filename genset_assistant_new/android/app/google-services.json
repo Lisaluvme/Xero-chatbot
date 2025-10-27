@@ -1,86 +1,49 @@
 {
   "project_info": {
-    "project_number": "823629461301",
-    "project_id": "gensetapplogin",
-    "storage_bucket": "gensetapplogin.firebasestorage.app"
+    "project_number": "459370345585",
+    "project_id": "genset-login",
+    "storage_bucket": "genset-login.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:823629461301:android:d5f4c85afe93394c84be7c",
+        "mobilesdk_app_id": "1:459370345585:android:4f675ad0da063c105397d0",
         "android_client_info": {
-          "package_name": "com.company.genset_assistant_new"
+          "package_name": "com.company.genset_assistant"
         }
       },
       "oauth_client": [
         {
-          "client_id": "823629461301-qk33mumlku71hl6biqr3u0k46ho9rgbi.apps.googleusercontent.com",
+          "client_id": "459370345585-90gj1ma6r14jjtlh7c0hkvieol8crek8.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.company.genset_assistant_new",
+            "package_name": "com.company.genset_assistant",
+            "certificate_hash": "ce7913292b88e414eaba690f003c7781d3047ebe"
+          }
+        },
+        {
+          "client_id": "459370345585-tg3f53o89oigskfc8aobt14arg9qctmp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.company.genset_assistant",
             "certificate_hash": "6ae5542a6d58d27224ee47abcfb2f4cf495588f7"
           }
         },
         {
-          "client_id": "823629461301-ecar8oihcbcvo994ejlktveurne8038d.apps.googleusercontent.com",
+          "client_id": "459370345585-792ihim9df4vi8umiftsujlrb5ru2llr.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyCrCkDVzgZCpZ-bSkpkioyGQqYDHWLHye8"
+          "current_key": "AIzaSyC3VnrXFQe8fKS7nb3dwmeMxpyDIVSdnzM"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "823629461301-ecar8oihcbcvo994ejlktveurne8038d.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:823629461301:android:5e761ab3e2e0717484be7c",
-        "android_client_info": {
-          "package_name": "com.company.megagenset99"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "823629461301-7vhabin2a612p475ejq0uulf9jakndtd.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.company.megagenset99",
-            "certificate_hash": "bf690194c5db7072e891dcba6a7cfde52d730fed"
-          }
-        },
-        {
-          "client_id": "823629461301-kco465uge44vn8l36nd234v5ggehfftb.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.company.megagenset99",
-            "certificate_hash": "6ae5542a6d58d27224ee47abcfb2f4cf495588f7"
-          }
-        },
-        {
-          "client_id": "823629461301-ecar8oihcbcvo994ejlktveurne8038d.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCrCkDVzgZCpZ-bSkpkioyGQqYDHWLHye8"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "823629461301-ecar8oihcbcvo994ejlktveurne8038d.apps.googleusercontent.com",
+              "client_id": "459370345585-792ihim9df4vi8umiftsujlrb5ru2llr.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

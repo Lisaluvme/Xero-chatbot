@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../features/learn/learn_page.dart';
 import '../features/maintenance/maintenance_page.dart';
 import '../features/troubleshooting/troubleshooting_page.dart';
@@ -15,6 +16,7 @@ import '../features/products/products_page.dart';
 import '../features/products/product_details_page.dart';
 import '../features/auth/login_page.dart';
 import '../services/wordpress_service.dart';
+import '../services/airtable_service.dart';
 import '../models/genset_model.dart';
 import '../providers/genset_provider.dart';
 
@@ -52,7 +54,13 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     super.initState();
     fetchPosts();
     fetchPopularProducts();
-    // GensetProvider will be triggered by the Consumer in build method
+    // Auto-fetch genset data when home page loads (after login)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final gensetProvider = Provider.of<GensetProvider>(context, listen: false);
+      if (gensetProvider.gensets.isEmpty && !gensetProvider.isLoading) {
+        gensetProvider.fetchGensets();
+      }
+    });
   }
 
   @override
@@ -231,15 +239,13 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   void _logout(BuildContext context) {
     Navigator.pop(context); // Close the dialog first
 
+    // Sign out from Firebase Auth
+    FirebaseAuth.instance.signOut();
+
     // Clear user session and reset providers
-    // Note: Since we're using Airtable for auth, we mainly reset the local state
     Provider.of<GensetProvider>(context, listen: false).reset();
 
-    // Navigate to login page
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const LoginPage()),
-      (Route<dynamic> route) => false,
-    );
+    // Navigation will be handled by StreamBuilder in main.dart
   }
 
   void _onServiceItemTap(BuildContext context, int index) {
@@ -846,15 +852,24 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     );
   }
 
-  List<Widget> _buildMirrorGensetSection() {
-    return [
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Future<List<Widget>> _buildMirrorGensetSection() async {
+    // Check if user has Airtable tagging
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return []; // Not logged in, don't show gensets
+    }
+
+    try {
+      final customerRecord = await AirtableService.getCustomerByEmail(user.email!);
+
+      // Only show gensets if user has valid tokens (tagging)
+      if (customerRecord == null || !customerRecord.hasValidTokens) {
+        // User doesn't have tagging - show access denied message
+        return [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'My Gensets',
@@ -864,119 +879,186 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                     color: Color(0xFF0F172A), // Text Color
                   ),
                 ),
-                Consumer<GensetProvider>(
-                  builder: (context, gensetProvider, child) {
-                    return TextButton(
-                      onPressed: () => gensetProvider.refreshGensets(),
-                      child: const Text(
-                        'Refresh',
-                        style: TextStyle(
-                          color: Color(0xFF38BDF8), // Highlight Color
-                          fontWeight: FontWeight.w600,
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.lock, color: Colors.orange.shade700),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Genset Access Required',
+                              style: TextStyle(
+                                color: Colors.orange.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Contact support to get access to your gensets. You need to be tagged in our system.',
+                              style: TextStyle(
+                                color: Colors.orange.shade600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    );
-                  },
+                    ],
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Consumer<GensetProvider>(
-              builder: (context, gensetProvider, child) {
-                if (gensetProvider.isLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF2563EB),
-                    ),
-                  );
-                }
+          ),
+          const SizedBox(height: 24),
+        ];
+      }
 
-                if (gensetProvider.hasError) {
-                  return Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.shade200),
+      // User has tagging - show gensets
+      return [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'My Gensets',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0F172A), // Text Color
                     ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.error, color: Colors.red.shade700),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Unable to load genset data',
-                                style: TextStyle(
-                                  color: Colors.red.shade700,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                gensetProvider.error,
-                                style: TextStyle(
-                                  color: Colors.red.shade600,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
+                  ),
+                  Consumer<GensetProvider>(
+                    builder: (context, gensetProvider, child) {
+                      return TextButton(
+                        onPressed: () => gensetProvider.refreshGensets(),
+                        child: const Text(
+                          'Refresh',
+                          style: TextStyle(
+                            color: Color(0xFF38BDF8), // Highlight Color
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        IconButton(
-                          onPressed: () => gensetProvider.fetchGensets(),
-                          icon: Icon(Icons.refresh, color: Colors.red.shade700),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                if (gensetProvider.gensets.isEmpty) {
-                  return Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.electrical_services, color: Colors.grey.shade700),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'No gensets assigned to your account.\nContact support to get access to your gensets.',
-                            style: TextStyle(
-                              color: Colors.grey.shade700,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return SizedBox(
-                  height: 200,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: gensetProvider.gensets.length,
-                    itemBuilder: (context, index) {
-                      return _buildGensetItem(gensetProvider.gensets[index]);
+                      );
                     },
                   ),
-                );
-              },
-            ),
-          ],
+                ],
+              ),
+              const SizedBox(height: 16),
+              Consumer<GensetProvider>(
+                builder: (context, gensetProvider, child) {
+                  if (gensetProvider.isLoading) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF2563EB),
+                      ),
+                    );
+                  }
+
+                  if (gensetProvider.hasError) {
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.error, color: Colors.red.shade700),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Unable to load genset data',
+                                  style: TextStyle(
+                                    color: Colors.red.shade700,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  gensetProvider.error,
+                                  style: TextStyle(
+                                    color: Colors.red.shade600,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => gensetProvider.fetchGensets(),
+                            icon: Icon(Icons.refresh, color: Colors.red.shade700),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  if (gensetProvider.gensets.isEmpty) {
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.electrical_services, color: Colors.grey.shade700),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'No gensets assigned to your account.\nContact support to get access to your gensets.',
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return SizedBox(
+                    height: 200,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: gensetProvider.gensets.length,
+                      itemBuilder: (context, index) {
+                        return _buildGensetItem(gensetProvider.gensets[index]);
+                      },
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
-      ),
-      const SizedBox(height: 24),
-    ];
+        const SizedBox(height: 24),
+      ];
+    } catch (e) {
+      print('Error checking user permissions: $e');
+      // On error, don't show gensets
+      return [];
+    }
   }
 
   Widget _buildGensetItem(Genset genset) {
@@ -1388,7 +1470,57 @@ class _HomePageWidgetState extends State<HomePageWidget> {
               const SizedBox(height: 24),
 
               // Mirror Gensets Section (only show if user is logged in and no access error)
-              ..._buildMirrorGensetSection(),
+              FutureBuilder<List<Widget>>(
+                future: _buildMirrorGensetSection(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'My Gensets',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF2563EB),
+                            ),
+                          ),
+                          SizedBox(height: 24),
+                        ],
+                      ),
+                    );
+                  } else if (snapshot.hasError) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'My Gensets',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          SizedBox(height: 24),
+                        ],
+                      ),
+                    );
+                  } else {
+                    return Column(children: snapshot.data ?? []);
+                  }
+                },
+              ),
 
               // Latest News
               Padding(
