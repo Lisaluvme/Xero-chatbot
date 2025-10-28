@@ -15,7 +15,7 @@ class AirtableService {
   static Future<CustomerRecord?> getCustomerByEmail(String email) async {
     try {
       final cleanEmail = email.trim();
-      final filterFormula = '{Email}="$cleanEmail"';
+      final filterFormula = '{email}="$cleanEmail"';
       final encodedFormula = Uri.encodeComponent(filterFormula);
       final url = '$_baseUrl?filterByFormula=$encodedFormula';
 
@@ -123,7 +123,7 @@ class AirtableService {
         },
         body: jsonEncode({
           'fields': {
-            'Email': customer.email,
+            'email': customer.email,
             'Customer Name': customer.customerName,
             'Genset Name': customer.gensetName,
             'Token': updatedTokens.join(','), // Airtable 存储为逗号分隔字符串
@@ -161,7 +161,7 @@ class AirtableService {
         },
         body: jsonEncode({
           'fields': {
-            'Email': customer.email,
+            'email': customer.email,
             'Customer Name': customer.customerName,
             'Genset Name': customer.gensetName,
             'Token': utokens.join(','), // Airtable 存储为逗号分隔字符串
@@ -216,7 +216,7 @@ class CustomerRecord {
 
     return CustomerRecord(
       id: json['id'] ?? '',
-      email: fields['Email'] ?? '',
+      email: fields['email'] ?? '',
       customerName: fields['Customer Name'] ?? '',
       gensetName: fields['Genset Name'] ?? '',
       tokens: tokenList,
