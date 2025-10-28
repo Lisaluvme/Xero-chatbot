@@ -15,7 +15,7 @@ class AirtableService {
   static Future<CustomerRecord?> getCustomerByEmail(String email) async {
     try {
       final cleanEmail = email.trim();
-      final filterFormula = 'Email="$cleanEmail"';
+      final filterFormula = '{Email}="$cleanEmail"';
       final encodedFormula = Uri.encodeComponent(filterFormula);
       final url = '$_baseUrl?filterByFormula=$encodedFormula';
 

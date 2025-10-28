@@ -61,7 +61,10 @@ class _LiveStatusPageState extends State<LiveStatusPage>
             elevation: 0,
             backgroundColor: Colors.transparent,
             child: Container(
-              constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
+              constraints: BoxConstraints(
+                maxWidth: 500,
+                maxHeight: MediaQuery.of(context).size.height * 0.8,
+              ),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(24),
@@ -100,6 +103,15 @@ class _LiveStatusPageState extends State<LiveStatusPage>
 
                           // Maintenance Status
                           _buildMaintenanceSection(genset.maintenanceStatus),
+                          const SizedBox(height: 24),
+
+                          // Alarm Status
+                          if (genset.specifications != null &&
+                              genset.specifications!['alarmnum'] != null &&
+                              (genset.specifications!['alarmnum'] as num) > 0) ...[
+                            _buildAlarmSection(genset.specifications!['alarmnum']),
+                            const SizedBox(height: 24),
+                          ],
                         ],
                       ),
                     ),
@@ -254,22 +266,47 @@ class _LiveStatusPageState extends State<LiveStatusPage>
             ],
           ),
           const SizedBox(height: 16),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 2.8,
-            children: [
-              _buildInfoItem("ID", genset.id, Icons.perm_identity, const Color(0xFF1E3A8A)),
-              _buildInfoItem("Power", genset.power, Icons.flash_on, const Color(0xFF14B8A6)),
-              _buildInfoItem("Brand", genset.brand, Icons.business, const Color(0xFF7C3AED)),
-              _buildInfoItem("Model", genset.model, Icons.build, const Color(0xFFF59E0B)),
-              _buildInfoItem("Location", genset.location, Icons.location_on, const Color(0xFFEF4444)),
-              _buildInfoItem("Customer", genset.customer ?? 'N/A', Icons.person, const Color(0xFF8B5CF6)),
-            ],
-          ),
+          ...[
+            {"Power": genset.power},
+            {"Brand": genset.brand},
+            {"Model": genset.model},
+            {"Location": genset.location},
+            {"Customer": genset.customer ?? 'N/A'},
+          ].map((entry) => Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    "${entry.keys.first}:",
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    entry.values.first,
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )),
         ],
       ),
     );
@@ -277,7 +314,7 @@ class _LiveStatusPageState extends State<LiveStatusPage>
 
   Widget _buildInfoItem(String label, String value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -292,31 +329,31 @@ class _LiveStatusPageState extends State<LiveStatusPage>
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 16),
-              const SizedBox(width: 6),
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 8),
               Text(
                 label,
                 style: TextStyle(
                   color: color,
-                  fontSize: 11,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             value,
             style: const TextStyle(
               color: Color(0xFF0F172A),
-              fontSize: 13,
+              fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
         ],
@@ -441,6 +478,59 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                       : "All systems operational",
                   style: TextStyle(
                     color: needsAttention ? Colors.orange.shade600 : Colors.green.shade600,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAlarmSection(dynamic alarmNum) {
+    final int alarmCount = alarmNum is int ? alarmNum : int.tryParse(alarmNum.toString()) ?? 0;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.red.shade200),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.error,
+              color: Colors.red.shade600,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Active Alarms",
+                  style: TextStyle(
+                    color: Colors.red.shade700,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "$alarmCount alarm${alarmCount != 1 ? 's' : ''} detected - requires immediate attention",
+                  style: TextStyle(
+                    color: Colors.red.shade600,
                     fontSize: 14,
                   ),
                 ),
