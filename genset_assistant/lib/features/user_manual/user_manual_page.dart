@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import '../ai_chat/ai_chat_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class UserManualPage extends StatelessWidget {
+class UserManualPage extends StatefulWidget {
   const UserManualPage({super.key});
 
+  @override
+  State<UserManualPage> createState() => _UserManualPageState();
+}
+
+class _UserManualPageState extends State<UserManualPage> {
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).viewPadding.bottom + 20; // Add safe area padding
