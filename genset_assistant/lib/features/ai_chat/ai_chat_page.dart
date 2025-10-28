@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:flutter_tts/flutter_tts.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../../main.dart' as main_app;
 import '../../widgets/home_page.dart' show HomePageWidget;
 
@@ -19,12 +16,7 @@ class _AiChatPageState extends State<AiChatPage> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = true;
-  bool _isListening = false;
-  bool _isSpeaking = false;
   bool _showHomeShortcut = false;
-
-  late stt.SpeechToText _speech;
-  late FlutterTts _flutterTts;
 
   String _currentLanguage = 'en';
   final Map<String, String> _languageNames = {
@@ -41,7 +33,6 @@ class _AiChatPageState extends State<AiChatPage> {
       setState(() {
         _currentLanguage = newLanguage;
       });
-      _updateTtsLanguage();
 
       // Show confirmation message in the NEWLY selected language
       String confirmationMessage;
@@ -73,10 +64,6 @@ class _AiChatPageState extends State<AiChatPage> {
   void initState() {
     super.initState();
     _initializeChat();
-    // Delay TTS initialization to avoid blocking main thread
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeVoiceFeatures();
-    });
   }
 
   Future<void> _initializeChat() async {
@@ -104,15 +91,7 @@ class _AiChatPageState extends State<AiChatPage> {
     }
   }
 
-  Future<void> _initializeVoiceFeatures() async {
-    _speech = stt.SpeechToText();
-    _flutterTts = FlutterTts();
-    await _flutterTts.setLanguage("en-US");
-    await _flutterTts.setSpeechRate(0.5);
-    await _flutterTts.setVolume(1.0);
-    await _flutterTts.setPitch(1.0);
-    await Permission.microphone.request();
-  }
+
 
   void _addWelcomeMessage() {
     const userName = 'User';
@@ -172,7 +151,6 @@ class _AiChatPageState extends State<AiChatPage> {
         setState(() {
           _currentLanguage = detectedLanguage;
         });
-        _updateTtsLanguage();
 
         // Show language change notification
         String notificationMessage;
@@ -213,69 +191,7 @@ class _AiChatPageState extends State<AiChatPage> {
     }
   }
 
-  Future<void> _startListening() async {
-    if (_isListening) {
-      await _stopListening();
-      return;
-    }
 
-    bool available = await _speech.initialize(
-      onStatus: (status) {
-        if (status == 'notListening') {
-          setState(() => _isListening = false);
-        }
-      },
-      onError: (error) {
-        setState(() => _isListening = false);
-        _showErrorSnackBar('Speech recognition error: ${error.errorMsg}');
-      },
-    );
-
-    if (available) {
-      setState(() => _isListening = true);
-      _speech.listen(
-        onResult: (result) {
-          if (result.finalResult) {
-            _controller.text = result.recognizedWords;
-            setState(() => _isListening = false);
-          }
-        },
-        localeId: _getLocaleId(),
-      );
-    } else {
-      _showErrorSnackBar('Speech recognition not available');
-    }
-  }
-
-  Future<void> _stopListening() async {
-    await _speech.stop();
-    setState(() => _isListening = false);
-  }
-
-  Future<void> _speakMessage(String message) async {
-    if (_isSpeaking) {
-      await _flutterTts.stop();
-      setState(() => _isSpeaking = false);
-      return;
-    }
-    setState(() => _isSpeaking = true);
-    await _flutterTts.speak(message);
-
-    _flutterTts.setCompletionHandler(() {
-      setState(() => _isSpeaking = false);
-    });
-  }
-
-  String _getLocaleId() {
-    switch (_currentLanguage) {
-      case 'ms':
-        return 'ms_MY';
-      case 'zh':
-        return 'zh_CN';
-      default:
-        return 'en_US';
-    }
-  }
 
   String _getLocalizedHintText() {
     switch (_currentLanguage) {
@@ -288,20 +204,7 @@ class _AiChatPageState extends State<AiChatPage> {
     }
   }
 
-  Future<void> _updateTtsLanguage() async {
-    String languageCode;
-    switch (_currentLanguage) {
-      case 'ms':
-        languageCode = 'ms-MY';
-        break;
-      case 'zh':
-        languageCode = 'zh-CN';
-        break;
-      default:
-        languageCode = 'en-US';
-    }
-    await _flutterTts.setLanguage(languageCode);
-  }
+
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -778,7 +681,7 @@ class _AiChatPageState extends State<AiChatPage> {
             ),
             // Input area with gradient background
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: MediaQuery.of(context).viewPadding.bottom + 40),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
@@ -849,17 +752,11 @@ class _AiChatPageState extends State<AiChatPage> {
                     ),
                     child: IconButton(
                       icon: Icon(
-                        _controller.text.isEmpty ? Icons.mic : Icons.send,
-                        color: _controller.text.isEmpty ? Colors.white : const Color(0xFF1E40AF),
+                        Icons.send,
+                        color: _controller.text.isEmpty ? Colors.white.withOpacity(0.5) : const Color(0xFF1E40AF),
                         size: 20,
                       ),
-                      onPressed: () {
-                        if (_controller.text.isEmpty) {
-                          _startListening();
-                        } else {
-                          _sendMessage();
-                        }
-                      },
+                      onPressed: _controller.text.isEmpty ? null : _sendMessage,
                     ),
                   ),
                 ],
