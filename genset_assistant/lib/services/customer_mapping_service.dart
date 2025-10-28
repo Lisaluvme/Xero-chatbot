@@ -69,7 +69,7 @@ class CustomerMappingService {
 
       print('🔄 [Flutter] Fetching fresh data from Database table for email: $email');
 
-      final url = 'https://api.airtable.com/v0/$_baseId/$_tableName?filterByFormula=${Uri.encodeComponent('{Email}="$email"')}';
+      final url = 'https://api.airtable.com/v0/$_baseId/$_tableName?filterByFormula=${Uri.encodeComponent('{email}="$email"')}';
 
       print('🔗 [Flutter] Airtable Database API URL: $url');
 
@@ -97,7 +97,7 @@ class CustomerMappingService {
         print('  3. The record might be in a different table');
 
         // Try a more flexible search (case-insensitive, trimmed)
-        final flexibleUrl = 'https://api.airtable.com/v0/$_baseId/$_tableName?filterByFormula=${Uri.encodeComponent('LOWER(TRIM({Email}))=LOWER(TRIM("$email"))')}';
+        final flexibleUrl = 'https://api.airtable.com/v0/$_baseId/$_tableName?filterByFormula=${Uri.encodeComponent('LOWER(TRIM({email}))=LOWER(TRIM("$email"))')}';
 
         print('🔄 [Flutter] Trying flexible email search in Database table: $flexibleUrl');
 
