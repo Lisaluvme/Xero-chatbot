@@ -7,6 +7,8 @@ class UserManualPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).viewPadding.bottom + 20; // Add safe area padding
+
     final List<Map<String, dynamic>> sections = [
       {
         'title': 'How To Operate A Genset',
@@ -288,6 +290,7 @@ class _LearnDetailPageState extends State<LearnDetailPage> {
   Widget build(BuildContext context) {
     final pages = widget.sections[widget.currentSectionIndex]['pages']
     as List<Map<String, dynamic>>;
+    final bottomPadding = MediaQuery.of(context).viewPadding.bottom + 20; // Add safe area padding
 
     return Scaffold(
       appBar: AppBar(
@@ -300,7 +303,9 @@ class _LearnDetailPageState extends State<LearnDetailPage> {
         ),
       ),
       body: pages.isNotEmpty
-          ? Column(
+          ? Padding(
+        padding: EdgeInsets.only(bottom: bottomPadding),
+        child: Column(
         children: [
           Expanded(
             child: PageView.builder(
@@ -422,7 +427,8 @@ class _LearnDetailPageState extends State<LearnDetailPage> {
           ),
           const SizedBox(height: 16),
         ],
-      )
+      ),
+          )
           : const Center(child: Text("No content available")),
     );
   }
