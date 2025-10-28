@@ -39,6 +39,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   List<Map<String, dynamic>> popularProducts = [];
   bool popularProductsLoading = true;
   String popularProductsError = '';
+  final TextEditingController _chatController = TextEditingController();
   final List<Map<String, dynamic>> serviceItems = const [
     {'icon': Icons.shopping_cart, 'label': 'Buy Genset', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
     {'icon': Icons.book, 'label': 'Instructions', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
@@ -1297,32 +1298,102 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        Row(
-                          children: [
-                            // Chatbot Button
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(25),
-                              ),
-                              child: IconButton(
-                                onPressed: _openChatbot,
-                                icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
-                                tooltip: 'Chat with AI Assistant',
+                        IconButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const ProfilePage()),
+                            );
+                          },
+                          icon: const Icon(Icons.account_circle, color: Colors.white),
+                          tooltip: 'Profile',
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Chat input field with dropdown button
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(25),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.3),
+                                width: 1,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              onPressed: () {
+                            child: TextField(
+                              controller: _chatController,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: const InputDecoration(
+                                hintText: 'Ask about generators, ATS, monitoring...',
+                                hintStyle: TextStyle(color: Colors.white70),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              onSubmitted: (value) {
+                                if (value.trim().isNotEmpty) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => AiChatPage(initialMessage: value.trim()),
+                                    ),
+                                  );
+                                  _chatController.clear();
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                          child: IconButton(
+                            onPressed: () {
+                              if (_chatController.text.trim().isNotEmpty) {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(builder: (context) => const ProfilePage()),
+                                  MaterialPageRoute(
+                                    builder: (context) => AiChatPage(initialMessage: _chatController.text.trim()),
+                                  ),
                                 );
-                              },
-                              icon: const Icon(Icons.account_circle, color: Colors.white),
-                              tooltip: 'Profile',
+                                _chatController.clear();
+                              } else {
+                                // Show dropdown chatbot
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (context) => Container(
+                                    height: MediaQuery.of(context).size.height * 0.8,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.only(
+                                        topLeft: Radius.circular(20),
+                                        topRight: Radius.circular(20),
+                                      ),
+                                    ),
+                                    child: const AiChatPage(),
+                                  ),
+                                );
+                              }
+                            },
+                            icon: Icon(
+                              _chatController.text.trim().isNotEmpty
+                                  ? Icons.send
+                                  : Icons.chat_bubble_outline,
+                              color: Colors.white,
                             ),
-                          ],
+                            tooltip: _chatController.text.trim().isNotEmpty
+                                ? 'Send message'
+                                : 'Open chatbot',
+                          ),
                         ),
                       ],
                     ),

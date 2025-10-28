@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'features/learn/learn_page.dart';
 import 'features/service_records/service_records_page.dart';
@@ -28,8 +29,46 @@ void main() async {
   runApp(const GensetAssistantApp());
 }
 
-class GensetAssistantApp extends StatelessWidget {
+class GensetAssistantApp extends StatefulWidget {
   const GensetAssistantApp({super.key});
+
+  @override
+  State<GensetAssistantApp> createState() => _GensetAssistantAppState();
+}
+
+class _GensetAssistantAppState extends State<GensetAssistantApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    // Clear chat history when app is closed
+    if (state == AppLifecycleState.detached) {
+      _clearChatHistoryOnAppClose();
+    }
+  }
+
+  Future<void> _clearChatHistoryOnAppClose() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove('chat_history');
+      await prefs.remove('chat_language');
+      print("DEBUG: Chat history cleared when app was closed");
+    } catch (e) {
+      print("Error clearing chat history on app close: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
