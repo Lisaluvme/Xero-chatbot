@@ -170,8 +170,8 @@ class _AiChatPageState extends State<AiChatPage> {
     await _loadChatHistory();
     await _loadChatLanguage();
 
-    // Simulate loading delay
-    await Future.delayed(const Duration(seconds: 1));
+    // Reduced loading delay for faster startup
+    await Future.delayed(const Duration(milliseconds: 300));
     setState(() {
       _isLoading = false;
     });

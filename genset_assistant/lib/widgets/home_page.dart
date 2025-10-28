@@ -39,8 +39,6 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   List<Map<String, dynamic>> popularProducts = [];
   bool popularProductsLoading = true;
   String popularProductsError = '';
-  final TextEditingController _searchController = TextEditingController();
-
   final List<Map<String, dynamic>> serviceItems = const [
     {'icon': Icons.shopping_cart, 'label': 'Buy Genset', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
     {'icon': Icons.book, 'label': 'Instructions', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
@@ -66,23 +64,11 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     });
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _sendSearchMessage() {
-    if (_searchController.text.isNotEmpty) {
-      // Navigate to AI Chat page with the message
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AiChatPage(initialMessage: _searchController.text),
-        ),
-      );
-      _searchController.clear();
-    }
+  void _openChatbot() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AiChatPage()),
+    );
   }
 
   Future<void> fetchPosts() async {
@@ -1301,39 +1287,42 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(
-                          child: Container(
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: TextField(
-                              controller: _searchController,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: const InputDecoration(
-                                hintText: 'Type a message...',
-                                hintStyle: TextStyle(color: Colors.white70),
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              ),
-                              onSubmitted: (_) => _sendSearchMessage(),
-                            ),
+                        const Text(
+                          'Welcome to Genset Assistant',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        IconButton(
-                          onPressed: _sendSearchMessage,
-                          icon: const Icon(Icons.send, color: Colors.white),
-                        ),
-                        IconButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const ProfilePage()),
-                            );
-                          },
-                          icon: const Icon(Icons.account_circle, color: Colors.white),
+                        Row(
+                          children: [
+                            // Chatbot Button
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                              child: IconButton(
+                                onPressed: _openChatbot,
+                                icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+                                tooltip: 'Chat with AI Assistant',
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const ProfilePage()),
+                                );
+                              },
+                              icon: const Icon(Icons.account_circle, color: Colors.white),
+                              tooltip: 'Profile',
+                            ),
+                          ],
                         ),
                       ],
                     ),
