@@ -1258,7 +1258,12 @@ class _HomePageWidgetState extends State<HomePageWidget> {
       backgroundColor: Theme.of(context).colorScheme.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewPadding.bottom + 160), // Increased padding for navigation bar
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewPadding.bottom + 200, // Increased padding for navigation bar and safe area
+            left: 0,
+            right: 0,
+            top: 0,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
