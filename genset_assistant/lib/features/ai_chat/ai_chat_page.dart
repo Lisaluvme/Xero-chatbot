@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../../main.dart' as main_app;
 import '../../widgets/home_page.dart' show HomePageWidget;
 import '../../services/deepseek_service.dart';
@@ -26,6 +28,9 @@ class _AiChatPageState extends State<AiChatPage> {
     'zh': 'CN',
   };
 
+  static const String _chatHistoryKey = 'chat_history';
+  static const String _chatLanguageKey = 'chat_language';
+
   // Add language change handler
   void _onLanguageChanged(String? newLanguage) {
     if (newLanguage != null && newLanguage != _currentLanguage) {
@@ -34,6 +39,9 @@ class _AiChatPageState extends State<AiChatPage> {
       setState(() {
         _currentLanguage = newLanguage;
       });
+
+      // Save language preference
+      _saveChatLanguage();
 
       // Show confirmation message in the NEWLY selected language
       String confirmationMessage;
@@ -61,6 +69,96 @@ class _AiChatPageState extends State<AiChatPage> {
     }
   }
 
+  // Load chat history from SharedPreferences
+  Future<void> _loadChatHistory() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? chatHistoryJson = prefs.getString(_chatHistoryKey);
+
+      if (chatHistoryJson != null) {
+        List<dynamic> chatHistoryList = json.decode(chatHistoryJson);
+        setState(() {
+          _messages.clear();
+          for (var item in chatHistoryList) {
+            _messages.add(ChatMessage(
+              text: item['text'],
+              isUser: item['isUser'],
+              timestamp: DateTime.parse(item['timestamp']),
+              image: item['image'],
+            ));
+          }
+        });
+        print("DEBUG: Loaded ${_messages.length} messages from chat history");
+      }
+    } catch (e) {
+      print("Error loading chat history: $e");
+    }
+  }
+
+  // Save chat history to SharedPreferences
+  Future<void> _saveChatHistory() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      List<Map<String, dynamic>> chatHistoryList = _messages.map((message) {
+        return {
+          'text': message.text,
+          'isUser': message.isUser,
+          'timestamp': message.timestamp.toIso8601String(),
+          'image': message.image,
+        };
+      }).toList();
+
+      String chatHistoryJson = json.encode(chatHistoryList);
+      await prefs.setString(_chatHistoryKey, chatHistoryJson);
+      print("DEBUG: Saved ${_messages.length} messages to chat history");
+    } catch (e) {
+      print("Error saving chat history: $e");
+    }
+  }
+
+  // Load chat language from SharedPreferences
+  Future<void> _loadChatLanguage() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? savedLanguage = prefs.getString(_chatLanguageKey);
+      if (savedLanguage != null && _languageNames.containsKey(savedLanguage)) {
+        setState(() {
+          _currentLanguage = savedLanguage;
+        });
+        print("DEBUG: Loaded language preference: $_currentLanguage");
+      }
+    } catch (e) {
+      print("Error loading chat language: $e");
+    }
+  }
+
+  // Save chat language to SharedPreferences
+  Future<void> _saveChatLanguage() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_chatLanguageKey, _currentLanguage);
+      print("DEBUG: Saved language preference: $_currentLanguage");
+    } catch (e) {
+      print("Error saving chat language: $e");
+    }
+  }
+
+  // Clear chat history (for logout or manual clear)
+  Future<void> _clearChatHistory() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_chatHistoryKey);
+      await prefs.remove(_chatLanguageKey);
+      setState(() {
+        _messages.clear();
+        _currentLanguage = 'en'; // Reset to default
+      });
+      print("DEBUG: Chat history cleared");
+    } catch (e) {
+      print("Error clearing chat history: $e");
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -68,12 +166,20 @@ class _AiChatPageState extends State<AiChatPage> {
   }
 
   Future<void> _initializeChat() async {
+    // Load saved chat history and language
+    await _loadChatHistory();
+    await _loadChatLanguage();
+
     // Simulate loading delay
     await Future.delayed(const Duration(seconds: 1));
     setState(() {
       _isLoading = false;
     });
-    _addWelcomeMessage();
+
+    // Only add welcome message if there's no chat history
+    if (_messages.isEmpty) {
+      _addWelcomeMessage();
+    }
 
     if (widget.initialMessage != null && widget.initialMessage!.isNotEmpty) {
       _addMessage(widget.initialMessage!, true);
@@ -130,6 +236,9 @@ class _AiChatPageState extends State<AiChatPage> {
         );
       });
     });
+
+    // Save chat history after adding message
+    _saveChatHistory();
   }
 
   void _sendMessage() async {

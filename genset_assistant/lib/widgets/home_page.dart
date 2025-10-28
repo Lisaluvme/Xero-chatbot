@@ -241,6 +241,9 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   void _logout(BuildContext context) {
     Navigator.pop(context); // Close the dialog first
 
+    // Clear chat history on logout
+    _clearChatHistory();
+
     // Sign out from Firebase Auth
     FirebaseAuth.instance.signOut();
 
@@ -248,6 +251,18 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     Provider.of<GensetProvider>(context, listen: false).reset();
 
     // Navigation will be handled by StreamBuilder in main.dart
+  }
+
+  /// Clear chat history from SharedPreferences
+  Future<void> _clearChatHistory() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove('chat_history');
+      await prefs.remove('chat_language');
+      print("DEBUG: Chat history cleared on logout");
+    } catch (e) {
+      print("Error clearing chat history: $e");
+    }
   }
 
   void _onServiceItemTap(BuildContext context, int index) {
