@@ -222,15 +222,48 @@ class UserManualPage extends StatelessWidget {
   Future<void> _launchWhatsApp() async {
     const phoneNumber = '+60129689816';
     const message = 'Hello from Genset Assistant';
-    final url = 'https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}';
 
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url));
-    } else {
-      // Fallback: try to open WhatsApp directly
-      final fallbackUrl = 'whatsapp://send?phone=$phoneNumber&text=${Uri.encodeComponent(message)}';
-      if (await canLaunchUrl(Uri.parse(fallbackUrl))) {
-        await launchUrl(Uri.parse(fallbackUrl));
+    // Try WhatsApp web URL first (works on mobile browsers)
+    final webUrl = 'https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}';
+
+    // Try WhatsApp app URL (works if WhatsApp is installed)
+    final appUrl = 'whatsapp://send?phone=$phoneNumber&text=${Uri.encodeComponent(message)}';
+
+    try {
+      // First try the web URL
+      final webUri = Uri.parse(webUrl);
+      if (await canLaunchUrl(webUri)) {
+        await launchUrl(webUri, mode: LaunchMode.externalApplication);
+        return;
+      }
+
+      // Fallback to app URL
+      final appUri = Uri.parse(appUrl);
+      if (await canLaunchUrl(appUri)) {
+        await launchUrl(appUri, mode: LaunchMode.externalApplication);
+        return;
+      }
+
+      // If neither works, show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('WhatsApp is not installed or cannot be opened'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      // Handle any errors
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening WhatsApp: $e'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
       }
     }
   }
