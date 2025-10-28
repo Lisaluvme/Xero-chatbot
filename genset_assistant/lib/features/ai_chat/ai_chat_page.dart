@@ -89,8 +89,18 @@ class _AiChatPageState extends State<AiChatPage> {
 
     if (widget.initialMessage != null && widget.initialMessage!.isNotEmpty) {
       _addMessage(widget.initialMessage!, true);
-      String response = await _generateSimpleResponse(widget.initialMessage!);
-      _addMessage(response, false);
+
+      // Show typing indicator
+      _showTypingIndicator();
+
+      // Generate intelligent response using DeepSeek
+      Map<String, dynamic> responseData = await _generateIntelligentResponse(widget.initialMessage!);
+
+      // Remove typing indicator
+      _removeTypingIndicator();
+
+      // Add response with typing effect
+      _addMessageWithTypingEffect(responseData['text'], false, responseData['image']);
     }
   }
 
