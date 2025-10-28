@@ -207,6 +207,7 @@ class _LiveStatusPageState extends State<LiveStatusPage>
   }
 
   Widget _buildStatusBadge(String status) {
+    final translatedStatus = _translateStatus(status);
     final statusColor = _getStatusColor(status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -228,7 +229,7 @@ class _LiveStatusPageState extends State<LiveStatusPage>
           ),
           const SizedBox(width: 8),
           Text(
-            status,
+            translatedStatus,
             style: TextStyle(
               color: statusColor,
               fontWeight: FontWeight.w600,
@@ -438,10 +439,10 @@ class _LiveStatusPageState extends State<LiveStatusPage>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: needsAttention ? Colors.orange.shade50 : Colors.green.shade50,
+        color: needsAttention ? Colors.blue.shade50 : Colors.green.shade50,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: needsAttention ? Colors.orange.shade200 : Colors.green.shade200,
+          color: needsAttention ? Colors.blue.shade200 : Colors.green.shade200,
         ),
       ),
       child: Row(
@@ -449,12 +450,12 @@ class _LiveStatusPageState extends State<LiveStatusPage>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: needsAttention ? Colors.orange.shade100 : Colors.green.shade100,
+              color: needsAttention ? Colors.blue.shade100 : Colors.green.shade100,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               needsAttention ? Icons.warning : Icons.check_circle,
-              color: needsAttention ? Colors.orange.shade600 : Colors.green.shade600,
+              color: needsAttention ? Colors.blue.shade600 : Colors.green.shade600,
               size: 24,
             ),
           ),
@@ -466,7 +467,7 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                 Text(
                   "Maintenance Status",
                   style: TextStyle(
-                    color: needsAttention ? Colors.orange.shade700 : Colors.green.shade700,
+                    color: needsAttention ? Colors.blue.shade700 : Colors.green.shade700,
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
                   ),
@@ -477,7 +478,7 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                       ? maintenanceStatus!
                       : "All systems operational",
                   style: TextStyle(
-                    color: needsAttention ? Colors.orange.shade600 : Colors.green.shade600,
+                    color: needsAttention ? Colors.blue.shade600 : Colors.green.shade600,
                     fontSize: 14,
                   ),
                 ),
@@ -639,7 +640,7 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                                     ),
                                   ),
                                   child: Text(
-                                    genset.status,
+                                    _translateStatus(genset.status),
                                     style: TextStyle(
                                       color: statusColor,
                                       fontSize: 12,
@@ -711,13 +712,13 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                           decoration: BoxDecoration(
                             color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
                                    genset.maintenanceStatus!.toLowerCase().contains('overdue')
-                                ? Colors.orange.shade50
+                                ? Colors.blue.shade50
                                 : Colors.green.shade50,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
                                      genset.maintenanceStatus!.toLowerCase().contains('overdue')
-                                  ? Colors.orange.shade200
+                                  ? Colors.blue.shade200
                                   : Colors.green.shade200,
                             ),
                           ),
@@ -730,7 +731,7 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                                     : Icons.check_circle,
                                 color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
                                        genset.maintenanceStatus!.toLowerCase().contains('overdue')
-                                    ? Colors.orange.shade600
+                                    ? Colors.blue.shade600
                                     : Colors.green.shade600,
                                 size: 20,
                               ),
@@ -741,7 +742,7 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                                   style: TextStyle(
                                     color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
                                            genset.maintenanceStatus!.toLowerCase().contains('overdue')
-                                        ? Colors.orange.shade700
+                                        ? Colors.blue.shade700
                                         : Colors.green.shade700,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 14,
@@ -804,25 +805,48 @@ class _LiveStatusPageState extends State<LiveStatusPage>
     );
   }
 
+  String _translateStatus(String status) {
+    final lowerStatus = status.toLowerCase();
+    if (lowerStatus.contains('离线')) {
+      return 'Offline';
+    } else if (lowerStatus.contains('在线') || lowerStatus.contains('online')) {
+      return 'Online';
+    } else if (lowerStatus.contains('空闲') || lowerStatus.contains('idle')) {
+      return 'Idle';
+    } else if (lowerStatus.contains('运行') || lowerStatus.contains('running')) {
+      return 'Running';
+    } else if (lowerStatus.contains('报警') || lowerStatus.contains('alarm')) {
+      return 'Alarm';
+    } else if (lowerStatus.contains('故障') || lowerStatus.contains('error')) {
+      return 'Error';
+    } else if (lowerStatus.contains('待机') || lowerStatus.contains('standby')) {
+      return 'Standby';
+    } else {
+      return status;
+    }
+  }
+
   Color _getStatusColor(String status) {
-    final statusLower = status.toLowerCase();
+    final translatedStatus = _translateStatus(status);
+    final statusLower = translatedStatus.toLowerCase();
     if (statusLower.contains('running') || statusLower.contains('online')) {
       return Colors.green;
     } else if (statusLower.contains('alarm') || statusLower.contains('error')) {
       return Colors.red;
-    } else if (statusLower.contains('standby') || statusLower.contains('off')) {
-      return Colors.orange;
+    } else if (statusLower.contains('standby') || statusLower.contains('off') || statusLower.contains('idle')) {
+      return Colors.blue.shade600;
     }
     return Colors.blue;
   }
 
   IconData _getStatusIcon(String status) {
-    final statusLower = status.toLowerCase();
+    final translatedStatus = _translateStatus(status);
+    final statusLower = translatedStatus.toLowerCase();
     if (statusLower.contains('running') || statusLower.contains('online')) {
       return Icons.play_circle_filled;
     } else if (statusLower.contains('alarm') || statusLower.contains('error')) {
       return Icons.error;
-    } else if (statusLower.contains('standby') || statusLower.contains('off')) {
+    } else if (statusLower.contains('standby') || statusLower.contains('off') || statusLower.contains('idle')) {
       return Icons.pause_circle_filled;
     }
     return Icons.help;
