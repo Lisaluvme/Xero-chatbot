@@ -887,13 +887,13 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
+                    color: Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange.shade200),
+                    border: Border.all(color: Colors.blue.shade200),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.lock, color: Colors.orange.shade700),
+                      Icon(Icons.lock, color: Colors.blue.shade700),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -902,7 +902,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                             Text(
                               'Genset Access Required',
                               style: TextStyle(
-                                color: Colors.orange.shade700,
+                                color: Colors.blue.shade700,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -910,7 +910,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                             Text(
                               'Contact support to get access to your gensets. You need to be tagged in our system.',
                               style: TextStyle(
-                                color: Colors.orange.shade600,
+                                color: Colors.blue.shade600,
                                 fontSize: 12,
                               ),
                             ),
@@ -1101,7 +1101,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     } else if (statusText.toLowerCase().contains('standby') ||
                statusText.toLowerCase().contains('off') ||
                statusText.toLowerCase().contains('idle')) {
-      statusColor = Colors.orange;
+      statusColor = Colors.blue.shade600;
     } else {
       statusColor = Colors.blue;
     }
@@ -1446,13 +1446,13 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
+                          color: Colors.blue.shade50,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.orange.shade200),
+                          border: Border.all(color: Colors.blue.shade200),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.warning, color: Colors.orange.shade700),
+                            Icon(Icons.warning, color: Colors.blue.shade700),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -1461,7 +1461,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                   Text(
                                     'Unable to load popular products',
                                     style: TextStyle(
-                                      color: Colors.orange.shade700,
+                                      color: Colors.blue.shade700,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -1469,7 +1469,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                   Text(
                                     'Showing cached data. Tap to retry.',
                                     style: TextStyle(
-                                      color: Colors.orange.shade600,
+                                      color: Colors.blue.shade600,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -1478,7 +1478,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                             ),
                             IconButton(
                               onPressed: fetchPopularProducts,
-                              icon: Icon(Icons.refresh, color: Colors.orange.shade700),
+                              icon: Icon(Icons.refresh, color: Colors.blue.shade700),
                             ),
                           ],
                         ),
