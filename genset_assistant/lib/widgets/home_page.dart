@@ -1063,10 +1063,31 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     }
   }
 
+  String _translateStatus(String status) {
+    final lowerStatus = status.toLowerCase();
+    if (lowerStatus.contains('离线')) {
+      return 'Offline';
+    } else if (lowerStatus.contains('在线') || lowerStatus.contains('online')) {
+      return 'Online';
+    } else if (lowerStatus.contains('空闲') || lowerStatus.contains('idle')) {
+      return 'Idle';
+    } else if (lowerStatus.contains('运行') || lowerStatus.contains('running')) {
+      return 'Running';
+    } else if (lowerStatus.contains('报警') || lowerStatus.contains('alarm')) {
+      return 'Alarm';
+    } else if (lowerStatus.contains('故障') || lowerStatus.contains('error')) {
+      return 'Error';
+    } else if (lowerStatus.contains('待机') || lowerStatus.contains('standby')) {
+      return 'Standby';
+    } else {
+      return status;
+    }
+  }
+
   Widget _buildGensetItem(Genset genset) {
     // Determine status color based on genset status
     Color statusColor;
-    String statusText = genset.status ?? 'Unknown';
+    String statusText = _translateStatus(genset.status ?? 'Unknown');
     if (statusText.toLowerCase().contains('running') ||
         statusText.toLowerCase().contains('online') ||
         statusText.toLowerCase().contains('active')) {
@@ -1276,6 +1297,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               ),
+                              onSubmitted: (_) => _sendSearchMessage(),
                             ),
                           ),
                         ),
