@@ -101,15 +101,15 @@ class _AiChatPageState extends State<AiChatPage> {
     switch (_currentLanguage) {
       case 'ms':
         welcomeMessage =
-            'Hello $userName! 👋 Saya adalah Pembantu AI Genset Malaysia anda yang dikuasakan oleh DeepSeek AI.\n\n🤖 Saya boleh membantu anda dengan:\n• Model generator (15KVA - 500KVA)\n• Sistem power bank (10KW dengan 20KWh/30KWh)\n• Sistem ATS (Automatic Transfer Switch)\n• Spesifikasi teknikal & ciri-ciri\n• Panduan harga & pemasangan\n\n💬 Cuba tanya:\n• "15kVA" atau "30kVA" untuk detail generator\n• "power bank" untuk sistem bateri\n• "ATS" untuk maklumat suis pemindahan\n• "bandingkan 15kVA vs 30kVA"\n\nApa yang anda ingin tahu? 😊';
+            'Hello $userName! 👋 Saya adalah Pembantu AI Genset Malaysia anda.\n\n🤖 Saya boleh membantu anda dengan:\n• Model generator (15KVA - 500KVA)\n• Sistem power bank (10KW dengan 20KWh/30KWh)\n• Sistem ATS (Automatic Transfer Switch)\n• Spesifikasi teknikal & ciri-ciri\n• Panduan harga & pemasangan\n\n💬 Cuba tanya:\n• "15kVA" atau "30kVA" untuk detail generator\n• "power bank" untuk sistem bateri\n• "ATS" untuk maklumat suis pemindahan\n• "bandingkan 15kVA vs 30kVA"\n\nApa yang anda ingin tahu? 😊';
         break;
       case 'zh':
         welcomeMessage =
-            '你好 $userName! 👋 我是您的Mega Genset Malaysia助手，由DeepSeek AI提供支持。\n\n🤖 我可以帮助您：\n• 发电机型号（15KVA - 500KVA）\n• 电源银行系统（10KW，配备20KWh/30KWh）\n• ATS（自动转换开关）系统\n• 技术规格和功能\n• 定价和安装指导\n\n💬 尝试询问：\n• "15kVA" 或 "30kVA" 以获取发电机详情\n• "power bank" 以获取电池系统信息\n• "ATS" 以获取转换开关信息\n• "比较15kVA vs 30kVA"\n\n您想了解什么？😊';
+            '你好 $userName! 👋 我是您的Mega Genset Malaysia助手。\n\n🤖 我可以帮助您：\n• 发电机型号（15KVA - 500KVA）\n• 电源银行系统（10KW，配备20KWh/30KWh）\n• ATS（自动转换开关）系统\n• 技术规格和功能\n• 定价和安装指导\n\n💬 尝试询问：\n• "15kVA" 或 "30kVA" 以获取发电机详情\n• "power bank" 以获取电池系统信息\n• "ATS" 以获取转换开关信息\n• "比较15kVA vs 30kVA"\n\n您想了解什么？😊';
         break;
       default:
         welcomeMessage =
-            'Hello $userName! 👋 I\'m your Mega Genset Malaysia Assistant powered by DeepSeek AI.\n\n🤖 I can help you with:\n• Generator models (15KVA - 500KVA)\n• Power bank systems (10KW with 20KWh/30KWh)\n• ATS (Automatic Transfer Switch) systems\n• Technical specifications & features\n• Pricing & installation guidance\n\n💬 Try asking:\n• "15kVA" or "30kVA" for generator details\n• "power bank" for battery systems\n• "ATS" for transfer switch info\n• "compare 15kVA vs 30kVA"\n\nWhat would you like to know? 😊';
+            'Hello $userName! 👋 I\'m your Mega Genset Malaysia Assistant.\n\n🤖 I can help you with:\n• Generator models (15KVA - 500KVA)\n• Power bank systems (10KW with 20KWh/30KWh)\n• ATS (Automatic Transfer Switch) systems\n• Technical specifications & features\n• Pricing & installation guidance\n\n💬 Try asking:\n• "15kVA" or "30kVA" for generator details\n• "power bank" for battery systems\n• "ATS" for transfer switch info\n• "compare 15kVA vs 30kVA"\n\nWhat would you like to know? 😊';
     }
     _addMessage(welcomeMessage, false);
   }
