@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../main.dart' as main_app;
 import '../../widgets/home_page.dart' show HomePageWidget;
+import '../../services/deepseek_service.dart';
 
 class AiChatPage extends StatefulWidget {
   final String? initialMessage;
@@ -250,8 +251,19 @@ class _AiChatPageState extends State<AiChatPage> {
     List<String> detectedErrorCodes = [];
     String detectedIntent = 'general_inquiry';
 
-    // Simple response generation based on keywords
-    String response = _generateSimpleResponse(userMessage);
+    // Generate intelligent response using DeepSeek AI
+    String response;
+    try {
+      response = await DeepSeekService.generateIntelligentResponse(
+        userMessage,
+        language: _currentLanguage,
+      );
+      print("DEBUG: DeepSeek response received successfully");
+    } catch (e) {
+      print("DEBUG: DeepSeek failed, using fallback response: $e");
+      // Fallback to simple response if DeepSeek fails
+      response = _generateSimpleResponse(userMessage);
+    }
 
     // Check if user is asking about a specific generator to include image
     String lowerMessage = userMessage.toLowerCase();

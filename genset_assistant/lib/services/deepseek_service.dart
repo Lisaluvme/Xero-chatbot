@@ -82,9 +82,207 @@ class DeepSeekService {
     }
   }
 
-  // Build simple context
+  // Build comprehensive knowledge base context
   static Future<String> _buildKnowledgeBaseContext(String userMessage, String language) async {
-    return "MGM Generator Product Database - Generators from 15KVA to 500KVA, Power Bank systems, ATS systems.";
+    String lowerMessage = userMessage.toLowerCase();
+
+    // Comprehensive MGM Generator Knowledge Base
+    String knowledgeBase = """
+MGM GENERATOR COMPREHENSIVE PRODUCT DATABASE - MALAYSIA'S LEADING POWER SOLUTIONS PROVIDER
+
+GENERATOR MODELS & SPECIFICATIONS:
+
+1. 15KVA MGM GENERATOR:
+   - Prime Power: 15KVA / 12KW
+   - Engine: Diesel, 4-cylinder, water-cooled
+   - Fuel Consumption: 3.5 L/hr at 75% load
+   - Dimensions: 1800mm x 800mm x 1200mm
+   - Weight: 650kg
+   - Applications: Small offices, shops, residential backup
+   - Price Range: RM 25,000 - RM 35,000
+   - Features: Auto start/stop, digital panel, low noise operation
+
+2. 30KVA MGM GENERATOR:
+   - Prime Power: 30KVA / 24KW
+   - Engine Options: Perkins, Isuzu, MGM diesel engines
+   - Fuel Consumption: 7.2 L/hr at 75% load
+   - Dimensions: 2200mm x 900mm x 1400mm
+   - Weight: 950kg
+   - Applications: Small commercial buildings, construction sites, factories
+   - Price Range: RM 45,000 - RM 65,000
+   - Features: Multiple engine options, advanced control panel, remote monitoring
+
+3. 60KVA MGM GENERATOR:
+   - Prime Power: 60KVA / 48KW
+   - Engine: Heavy-duty diesel, 4-cylinder turbocharged
+   - Fuel Consumption: 14.5 L/hr at 75% load
+   - Dimensions: 2800mm x 1100mm x 1600mm
+   - Weight: 1800kg
+   - Applications: Medium commercial, hospitals, data centers
+   - Price Range: RM 85,000 - RM 120,000
+   - Features: Redundant systems, auto transfer switch ready
+
+4. 100KVA MGM GENERATOR:
+   - Prime Power: 100KVA / 80KW
+   - Engine: Industrial diesel, 6-cylinder
+   - Fuel Consumption: 22.8 L/hr at 75% load
+   - Dimensions: 3200mm x 1200mm x 1800mm
+   - Weight: 2500kg
+   - Applications: Large commercial, manufacturing facilities
+   - Price Range: RM 145,000 - RM 200,000
+   - Features: Parallel operation capable, advanced diagnostics
+
+5. 160KVA MGM GENERATOR:
+   - Prime Power: 160KVA / 128KW
+   - Engine: High-performance diesel, 6-cylinder turbocharged
+   - Fuel Consumption: 36.5 L/hr at 75% load
+   - Dimensions: 3800mm x 1400mm x 2000mm
+   - Weight: 3800kg
+   - Applications: Industrial facilities, large buildings
+   - Price Range: RM 220,000 - RM 300,000
+   - Features: Multiple voltage options, weather protection
+
+6. 250KVA MGM GENERATOR:
+   - Prime Power: 250KVA / 200KW
+   - Engine: Heavy industrial diesel
+   - Fuel Consumption: 56.8 L/hr at 75% load
+   - Dimensions: 4500mm x 1600mm x 2200mm
+   - Weight: 5500kg
+   - Applications: Large industrial, power plants
+   - Price Range: RM 350,000 - RM 480,000
+   - Features: Containerized options, extreme environment ready
+
+7. 350KVA MGM GENERATOR:
+   - Prime Power: 350KVA / 280KW
+   - Engine: Commercial-grade diesel
+   - Fuel Consumption: 79.2 L/hr at 75% load
+   - Dimensions: 5200mm x 1800mm x 2400mm
+   - Weight: 7200kg
+   - Applications: Critical infrastructure, large facilities
+   - Price Range: RM 480,000 - RM 650,000
+   - Features: Redundant cooling, advanced monitoring
+
+8. 500KVA MGM GENERATOR:
+   - Prime Power: 500KVA / 400KW
+   - Engine: Industrial diesel, multi-cylinder
+   - Fuel Consumption: 113.6 L/hr at 75% load
+   - Dimensions: 6000mm x 2000mm x 2600mm
+   - Weight: 9500kg
+   - Applications: Power generation, large industrial complexes
+   - Price Range: RM 680,000 - RM 920,000
+   - Features: Grid synchronization capable, remote management
+
+POWER BANK SYSTEMS:
+
+1. 10KW POWER BANK WITH 20KWH BATTERY:
+   - Output Power: 10KW continuous
+   - Battery Capacity: 20KWh Lithium-ion
+   - Voltage: 400V 3-phase / 230V single-phase options
+   - Dimensions: 800mm x 600mm x 1800mm
+   - Weight: 280kg
+   - Applications: Solar integration, UPS systems, peak shaving
+   - Price Range: RM 45,000 - RM 65,000
+   - Features: Fast charging, modular design, smart management
+
+2. 10KW POWER BANK WITH 30KWH BATTERY:
+   - Output Power: 10KW continuous
+   - Battery Capacity: 30KWh Lithium-ion
+   - Voltage: 400V 3-phase / 230V single-phase options
+   - Dimensions: 800mm x 600mm x 2000mm
+   - Weight: 350kg
+   - Applications: Extended backup, solar storage, microgrids
+   - Price Range: RM 55,000 - RM 78,000
+   - Features: Extended runtime, grid-tie capability, monitoring
+
+AUTOMATIC TRANSFER SWITCH (ATS) SYSTEMS:
+
+1. SINGLE PHASE ATS (63A - 125A):
+   - Current Rating: 63A, 100A, 125A
+   - Voltage: 230V
+   - Transfer Time: < 100ms
+   - Applications: Residential, small commercial
+   - Price Range: RM 2,500 - RM 5,000
+   - Features: Manual override, status indicators
+
+2. THREE PHASE ATS (100A - 630A):
+   - Current Rating: 100A, 200A, 400A, 630A
+   - Voltage: 400V
+   - Transfer Time: < 100ms
+   - Applications: Commercial, industrial
+   - Price Range: RM 8,000 - RM 25,000
+   - Features: Microprocessor control, remote monitoring
+
+MAINTENANCE & TROUBLESHOOTING:
+
+COMMON GENERATOR PROBLEMS & SOLUTIONS:
+
+1. WON'T START:
+   - Battery: Check voltage (>12V), terminals clean, water level
+   - Fuel: Check fuel level, air locks, fuel filters
+   - Starter: Check solenoid, wiring, motor
+   - Control Panel: Check fuses, programming, sensors
+
+2. LOW OUTPUT POWER:
+   - Load: Check connected load vs generator capacity
+   - Fuel: Check fuel quality, filters, injection system
+   - Engine: Check oil pressure, cooling system, timing
+   - Alternator: Check windings, voltage regulator, brushes
+
+3. HIGH FUEL CONSUMPTION:
+   - Maintenance: Check air filters, fuel filters, injectors
+   - Load: Operating at optimal load (60-80%)
+   - Engine: Check valve clearance, compression, timing
+
+4. OVERHEATING:
+   - Coolant: Check level, radiator, water pump
+   - Load: Reduce load if excessive
+   - Ventilation: Ensure proper airflow around generator
+   - Thermostat: Check operation and replacement
+
+5. ELECTRICAL FAULTS:
+   - ATS: Check transfer switch operation
+   - Wiring: Check connections, insulation, grounding
+   - Protection: Check circuit breakers, fuses, relays
+
+MAINTENANCE SCHEDULE:
+- Daily: Visual inspection, oil level, coolant level, fuel level
+- Weekly: Battery check, control panel test, load test
+- Monthly: Oil and filter change, air filter check
+- Quarterly: Comprehensive inspection, load bank test
+- Annually: Major service, engine tune-up, alternator check
+
+INSTALLATION REQUIREMENTS:
+- Ventilation: Adequate airflow, exhaust system
+- Fuel System: Tank capacity, piping, filtration
+- Electrical: Proper grounding, cable sizing, protection
+- Foundation: Level surface, vibration isolation
+- Sound Attenuation: Acoustic enclosures if required
+
+WARRANTY & SUPPORT:
+- Generator Warranty: 1-2 years depending on model
+- Engine Warranty: As per manufacturer (Perkins, Cummins, etc.)
+- Parts Availability: 24/7 support for critical components
+- Technical Support: On-site service, remote diagnostics
+- Training: Operator training programs available
+
+DELIVERY & INSTALLATION:
+- Delivery Time: 2-8 weeks depending on model
+- Installation: Professional installation service available
+- Commissioning: Full system testing and handover
+- Documentation: Operation manuals, maintenance schedules
+- Training: Operator and maintenance personnel training
+
+CONTACT INFORMATION:
+- Support Hotline: +60129689816
+- Email: info@mggenset.com.my
+- Website: www.mggenset.com.my
+- Service Centers: Multiple locations across Malaysia
+- Emergency Support: 24/7 technical assistance
+
+This comprehensive database covers all MGM generator products, specifications, pricing, troubleshooting guides, and technical support information. Use this information to provide accurate, helpful responses to customers.
+""";
+
+    return knowledgeBase;
   }
 
   // Build system prompt for DeepSeek AI
