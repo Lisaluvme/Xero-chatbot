@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../main.dart' as main_app;
 import '../../widgets/home_page.dart' show HomePageWidget;
 import '../../services/deepseek_service.dart';
+import '../../services/wordpress_service.dart';
 
 class AiChatPage extends StatefulWidget {
   final String? initialMessage;
@@ -374,7 +376,7 @@ class _AiChatPageState extends State<AiChatPage> {
       response = _generateSimpleResponse(userMessage);
     }
 
-    // Check if user is asking about a specific generator to include image
+    // Check if user is asking about a specific generator to include image from WordPress
     String lowerMessage = userMessage.toLowerCase();
     List<String> gensetMatches = [];
 
@@ -411,48 +413,27 @@ class _AiChatPageState extends State<AiChatPage> {
     // Only show image if exactly ONE genset type is mentioned
     if (gensetMatches.length == 1) {
       String gensetType = gensetMatches[0];
-      switch (gensetType) {
-        case '15kva':
-          imagePath = 'assets/images/15KVA MGM GENERATOR_image.png';
-          break;
-        case '30kva':
-          if (lowerMessage.contains('isuzu')) {
-            imagePath = 'assets/images/30KVA ISUZU_image.png';
-          } else if (lowerMessage.contains('compact')) {
-            imagePath = 'assets/images/30KVA  MGM COMPACT GENERATOR_image.png';
-          } else if (lowerMessage.contains('mark 15')) {
-            imagePath = 'assets/images/30KVA MGM GENERATOR MARK 15_image.png';
+
+      try {
+        // Fetch product data from WordPress
+        final product = await WordPressService.searchGensetProduct(gensetType);
+        if (product != null) {
+          // Get product images
+          final images = WordPressService.getProductImages(product);
+          if (images.isNotEmpty) {
+            // Use the first image URL
+            imagePath = images[0];
+            print("DEBUG: Found WordPress image for $gensetType: $imagePath");
           } else {
-            imagePath = 'assets/images/30KVA MGM GENERATOR_image.png';
+            print("DEBUG: No images found for $gensetType product");
           }
-          break;
-        case '60kva':
-          imagePath = 'assets/images/60KVA MGM GENERATOR_image.png';
-          break;
-        case '100kva':
-          imagePath = 'assets/images/100KVA MGM GENERATOR_image.png';
-          break;
-        case '160kva':
-          imagePath = 'assets/images/160KVA MGM GENERATOR_image.png';
-          break;
-        case '250kva':
-          imagePath = 'assets/images/250KVA MGM Generator_image.png';
-          break;
-        case '350kva':
-          imagePath = 'assets/images/350kva MGM GENERATOR_image.png';
-          break;
-        case '500kva':
-          imagePath = 'assets/images/500KVA MGM GENERATOR_image.png';
-          break;
-        case 'powerbank':
-          if (lowerMessage.contains('20kwh') || lowerMessage.contains('20 kwh')) {
-            imagePath = 'assets/images/10KW MGM PWR BNK WITH 20KWH BATTERY(BATTERY)_image.png';
-          } else if (lowerMessage.contains('30kwh') || lowerMessage.contains('30 kwh')) {
-            imagePath = 'assets/images/10KW MGM PWR BNK WITH 30KWh BATTERY(V2)(BATTERY)_image.png';
-          } else {
-            imagePath = 'assets/images/10KW MGM PWR BNK WITH 20KWH BATTERY(BATTERY)_image.png';
-          }
-          break;
+        } else {
+          print("DEBUG: No WordPress product found for $gensetType");
+        }
+      } catch (e) {
+        print("DEBUG: Error fetching WordPress image for $gensetType: $e");
+        // Fallback to local assets if WordPress fails
+        imagePath = _getFallbackImagePath(gensetType, lowerMessage);
       }
     }
 
@@ -889,6 +870,46 @@ class _AiChatPageState extends State<AiChatPage> {
     );
   }
 
+  // Fallback to local assets if WordPress fails
+  String? _getFallbackImagePath(String gensetType, String lowerMessage) {
+    switch (gensetType) {
+      case '15kva':
+        return 'assets/images/15KVA MGM GENERATOR_image.png';
+      case '30kva':
+        if (lowerMessage.contains('isuzu')) {
+          return 'assets/images/30KVA ISUZU_image.png';
+        } else if (lowerMessage.contains('compact')) {
+          return 'assets/images/30KVA  MGM COMPACT GENERATOR_image.png';
+        } else if (lowerMessage.contains('mark 15')) {
+          return 'assets/images/30KVA MGM GENERATOR MARK 15_image.png';
+        } else {
+          return 'assets/images/30KVA MGM GENERATOR_image.png';
+        }
+      case '60kva':
+        return 'assets/images/60KVA MGM GENERATOR_image.png';
+      case '100kva':
+        return 'assets/images/100KVA MGM GENERATOR_image.png';
+      case '160kva':
+        return 'assets/images/160KVA MGM GENERATOR_image.png';
+      case '250kva':
+        return 'assets/images/250KVA MGM Generator_image.png';
+      case '350kva':
+        return 'assets/images/350kva MGM GENERATOR_image.png';
+      case '500kva':
+        return 'assets/images/500KVA MGM GENERATOR_image.png';
+      case 'powerbank':
+        if (lowerMessage.contains('20kwh') || lowerMessage.contains('20 kwh')) {
+          return 'assets/images/10KW MGM PWR BNK WITH 20KWH BATTERY(BATTERY)_image.png';
+        } else if (lowerMessage.contains('30kwh') || lowerMessage.contains('30 kwh')) {
+          return 'assets/images/10KW MGM PWR BNK WITH 30KWh BATTERY(V2)(BATTERY)_image.png';
+        } else {
+          return 'assets/images/10KW MGM PWR BNK WITH 20KWH BATTERY(BATTERY)_image.png';
+        }
+      default:
+        return null;
+    }
+  }
+
   String _generateSimpleResponse(String userMessage) {
     String lowerMessage = userMessage.toLowerCase();
 
@@ -943,28 +964,61 @@ class _AiChatPageState extends State<AiChatPage> {
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(
-                    message.image!,
-                    height: 120,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1A1A1A),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.image_not_supported,
-                            color: Color(0xFFB3B3B3),
-                            size: 40,
+                  child: message.image!.startsWith('http')
+                      ? CachedNetworkImage(
+                          imageUrl: message.image!,
+                          height: 120,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1A1A1A),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF1E3A8A),
+                              ),
+                            ),
                           ),
+                          errorWidget: (context, url, error) => Container(
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1A1A1A),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.image_not_supported,
+                                color: Color(0xFFB3B3B3),
+                                size: 40,
+                              ),
+                            ),
+                          ),
+                        )
+                      : Image.asset(
+                          message.image!,
+                          height: 120,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 120,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1A1A1A),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.image_not_supported,
+                                  color: Color(0xFFB3B3B3),
+                                  size: 40,
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
                 ),
               ),
             // Display text

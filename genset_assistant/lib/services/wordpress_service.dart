@@ -113,6 +113,113 @@ class WordPressService {
     }
   }
 
+  // Search for genset products by model/type
+  static Future<Map<String, dynamic>?> searchGensetProduct(String gensetType) async {
+    final String cacheKey = 'genset_search_$gensetType';
+
+    // Check cache first
+    if (_isCacheValid(cacheKey)) {
+      print("Returning cached genset search for $gensetType");
+      return _cache[cacheKey] as Map<String, dynamic>?;
+    }
+
+    try {
+      // First fetch all products
+      final products = await fetchProducts();
+
+      // Search for matching genset product
+      for (var product in products) {
+        final name = (product['name'] ?? '').toString().toLowerCase();
+        final description = (product['description'] ?? '').toString().toLowerCase();
+        final shortDescription = (product['short_description'] ?? '').toString().toLowerCase();
+
+        // Check if product matches the genset type
+        if (_matchesGensetType(name, description, shortDescription, gensetType)) {
+          // Cache the result
+          _cache[cacheKey] = product;
+          _cacheTimestamps[cacheKey] = DateTime.now();
+          return product;
+        }
+      }
+
+      return null;
+    } catch (e) {
+      print("Error searching for genset product $gensetType: $e");
+      return null;
+    }
+  }
+
+  // Check if product matches genset type
+  static bool _matchesGensetType(String name, String description, String shortDescription, String gensetType) {
+    final searchText = '$name $description $shortDescription'.toLowerCase();
+
+    switch (gensetType.toLowerCase()) {
+      case '15kva':
+        return searchText.contains('15') && (searchText.contains('kva') || searchText.contains('kw'));
+      case '30kva':
+        return searchText.contains('30') && (searchText.contains('kva') || searchText.contains('kw'));
+      case '60kva':
+        return searchText.contains('60') && (searchText.contains('kva') || searchText.contains('kw'));
+      case '100kva':
+        return searchText.contains('100') && (searchText.contains('kva') || searchText.contains('kw'));
+      case '160kva':
+        return searchText.contains('160') && (searchText.contains('kva') || searchText.contains('kw'));
+      case '250kva':
+        return searchText.contains('250') && (searchText.contains('kva') || searchText.contains('kw'));
+      case '350kva':
+        return searchText.contains('350') && (searchText.contains('kva') || searchText.contains('kw'));
+      case '500kva':
+        return searchText.contains('500') && (searchText.contains('kva') || searchText.contains('kw'));
+      case 'powerbank':
+        return searchText.contains('power bank') || searchText.contains('battery');
+      default:
+        return false;
+    }
+  }
+
+  // Get product image URLs
+  static List<String> getProductImages(Map<String, dynamic> product) {
+    final images = <String>[];
+
+    try {
+      // Handle WooCommerce images array
+      final imagesData = product['images'];
+      if (imagesData is List) {
+        for (var image in imagesData) {
+          if (image is Map<String, dynamic>) {
+            final src = image['src'];
+            if (src is String && src.isNotEmpty && src.startsWith('http')) {
+              images.add(src);
+            }
+          }
+        }
+      } else if (imagesData is Map<String, dynamic>) {
+        // Fallback for single image object
+        final src = imagesData['src'];
+        if (src is String && src.isNotEmpty && src.startsWith('http')) {
+          images.add(src);
+        }
+      }
+
+      // Fallback to single image field if images array is empty
+      if (images.isEmpty) {
+        final singleImage = product['image'];
+        if (singleImage is String && singleImage.isNotEmpty && singleImage.startsWith('http')) {
+          images.add(singleImage);
+        } else if (singleImage is Map<String, dynamic>) {
+          final src = singleImage['src'];
+          if (src is String && src.isNotEmpty && src.startsWith('http')) {
+            images.add(src);
+          }
+        }
+      }
+    } catch (e) {
+      print('Error parsing product images: $e');
+    }
+
+    return images;
+  }
+
   // Check if cache is valid
   static bool _isCacheValid(String key) {
     if (!_cache.containsKey(key) || !_cacheTimestamps.containsKey(key)) {
