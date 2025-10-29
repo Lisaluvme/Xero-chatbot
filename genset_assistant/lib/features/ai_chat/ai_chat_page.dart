@@ -16,7 +16,7 @@ class AiChatPage extends StatefulWidget {
   State<AiChatPage> createState() => _AiChatPageState();
 }
 
-class _AiChatPageState extends State<AiChatPage> {
+class _AiChatPageState extends State<AiChatPage> with WidgetsBindingObserver {
   final List<ChatMessage> _messages = [];
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -101,7 +101,10 @@ class _AiChatPageState extends State<AiChatPage> {
   Future<void> _saveChatHistory() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      List<Map<String, dynamic>> chatHistoryList = _messages.map((message) {
+      // Filter out typing indicators ("...") from being saved
+      List<Map<String, dynamic>> chatHistoryList = _messages
+          .where((message) => message.text != '...')
+          .map((message) {
         return {
           'text': message.text,
           'isUser': message.isUser,
@@ -112,7 +115,7 @@ class _AiChatPageState extends State<AiChatPage> {
 
       String chatHistoryJson = json.encode(chatHistoryList);
       await prefs.setString(_chatHistoryKey, chatHistoryJson);
-      print("DEBUG: Saved ${_messages.length} messages to chat history");
+      print("DEBUG: Saved ${chatHistoryList.length} messages to chat history (filtered out typing indicators)");
     } catch (e) {
       print("Error saving chat history: $e");
     }
@@ -164,7 +167,35 @@ class _AiChatPageState extends State<AiChatPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeChat();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    // Clear chat history when app is closed/terminated
+    if (state == AppLifecycleState.detached) {
+      _clearChatHistoryOnAppClose();
+    }
+  }
+
+  Future<void> _clearChatHistoryOnAppClose() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_chatHistoryKey);
+      await prefs.remove(_chatLanguageKey);
+      print("DEBUG: Chat history cleared on app close");
+    } catch (e) {
+      print("Error clearing chat history on app close: $e");
+    }
   }
 
   Future<void> _initializeChat() async {
