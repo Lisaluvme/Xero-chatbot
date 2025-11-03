@@ -44,22 +44,22 @@ class TroubleshootingPage extends StatelessWidget {
                   size: 48,
                   color: Theme.of(context).colorScheme.onPrimary,
                 ),
-                SizedBox(height: 16),
-                Text(
+                const SizedBox(height: 16),
+                const Text(
                   'Generator Troubleshooting',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onPrimary,
+                    color: Color(0xFF000000), // Black text
                   ),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 8),
-                Text(
+                const SizedBox(height: 8),
+                const Text(
                   'Quick solutions for generator issues',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Theme.of(context).colorScheme.onPrimary,
+                    color: Color(0xFF000000), // Black text
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -184,18 +184,18 @@ class TroubleshootingPage extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
+                          color: Color(0xFF000000),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         description,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSecondary,
+                          color: Color(0xFF000000),
                           height: 1.3,
                         ),
                       ),
@@ -237,53 +237,53 @@ class TroubleshootingDetailPage extends StatelessWidget {
           children: [
             Text(
               title,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onBackground,
+                color: Color(0xFF000000),
               ),
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Follow these troubleshooting steps in order. Always ensure safety first before attempting any repairs.',
-              style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSecondary),
+              style: TextStyle(fontSize: 16, color: Color(0xFF000000)),
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Step-by-Step Troubleshooting:',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onBackground,
+                color: Color(0xFF000000),
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               '1. Safety Check: Ensure generator is off and safe to work on.\n'
                   '2. Visual Inspection: Look for obvious signs of damage.\n'
                   '3. Check Fuel: Verify fuel level and quality.\n'
                   '4. Battery Test: Check battery charge and connections.\n'
                   '5. System Test: Test individual components.\n'
                   '6. Professional Help: Contact service if needed.',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSecondary),
+              style: TextStyle(color: Color(0xFF000000)),
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Common Causes:',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onBackground,
+                color: Color(0xFF000000),
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               '• Low fuel level\n'
                   '• Dead battery\n'
                   '• Faulty starter\n'
                   '• Clogged fuel filter\n'
                   '• Overloaded circuit',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSecondary),
+              style: TextStyle(color: Color(0xFF000000)),
             ),
             const SizedBox(height: 16),
             Row(

@@ -21,7 +21,6 @@ class _AiChatPageState extends State<AiChatPage> with WidgetsBindingObserver {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = true;
-  bool _showHomeShortcut = false;
 
   String _currentLanguage = 'en';
   final Map<String, String> _languageNames = {
@@ -151,13 +150,15 @@ class _AiChatPageState extends State<AiChatPage> with WidgetsBindingObserver {
   // Clear chat history (for logout or manual clear)
   Future<void> _clearChatHistory() async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_chatHistoryKey);
-      await prefs.remove(_chatLanguageKey);
+      // Clear in-memory chat history
       setState(() {
         _messages.clear();
         _currentLanguage = 'en'; // Reset to default
       });
+
+      // Clear persisted language preference
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_chatLanguageKey);
       print("DEBUG: Chat history cleared");
     } catch (e) {
       print("Error clearing chat history: $e");
@@ -181,14 +182,21 @@ class _AiChatPageState extends State<AiChatPage> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
 
-    // Clear chat history when app is closed/terminated
-    if (state == AppLifecycleState.detached) {
+    // Clear chat history when app goes to background (closed/minimized)
+    if (state == AppLifecycleState.paused) {
       _clearChatHistoryOnAppClose();
     }
   }
 
   Future<void> _clearChatHistoryOnAppClose() async {
     try {
+      // Clear in-memory chat history
+      setState(() {
+        _messages.clear();
+        _currentLanguage = 'en'; // Reset to default
+      });
+
+      // Clear persisted chat history and language preference
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.remove(_chatHistoryKey);
       await prefs.remove(_chatLanguageKey);
@@ -283,10 +291,6 @@ class _AiChatPageState extends State<AiChatPage> with WidgetsBindingObserver {
       // Show global chat shortcut on all pages after first message
       main_app.HomePage.showChatShortcut();
 
-      setState(() {
-        _showHomeShortcut = true; // Show home shortcut after sending first message
-      }); // 刷新按钮状态
-
       // Auto-detect language from user message
       String detectedLanguage = _detectLanguage(userMessage);
       if (detectedLanguage != _currentLanguage) {
@@ -348,6 +352,81 @@ class _AiChatPageState extends State<AiChatPage> with WidgetsBindingObserver {
   }
 
 
+
+  void _showDeleteHistoryDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E3A8A),
+          title: const Text(
+            'Delete Chat History',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: const Text(
+            'Are you sure you want to delete all chat history? This action cannot be undone.',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white70),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteChatHistory();
+              },
+              child: const Text(
+                'Delete',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteChatHistory() async {
+    try {
+      // Clear in-memory chat history
+      setState(() {
+        _messages.clear();
+        _currentLanguage = 'en'; // Reset to default
+      });
+
+      // Clear persisted chat history and language preference
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_chatHistoryKey);
+      await prefs.remove(_chatLanguageKey);
+
+      // Add welcome message back
+      _addWelcomeMessage();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Chat history deleted successfully'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      print("DEBUG: Chat history manually deleted");
+    } catch (e) {
+      print("Error deleting chat history: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to delete chat history'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -711,18 +790,6 @@ class _AiChatPageState extends State<AiChatPage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: _showHomeShortcut ? FloatingActionButton(
-        onPressed: () {
-          // Navigate back to home page (first tab in bottom navigation)
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => HomePageWidget()),
-            (route) => false,
-          );
-        },
-        backgroundColor: const Color(0xFF1E3A8A), // Primary blue
-        child: const Icon(Icons.home, color: Colors.white),
-        tooltip: 'Back to Home',
-      ) : null,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -770,6 +837,12 @@ class _AiChatPageState extends State<AiChatPage> with WidgetsBindingObserver {
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 actions: [
+                  // Delete History Button
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Color(0xFFFFFFFF)),
+                    tooltip: 'Delete Chat History',
+                    onPressed: () => _showDeleteHistoryDialog(context),
+                  ),
                   // Language Selector
                   Container(
                     margin: const EdgeInsets.only(right: 8),

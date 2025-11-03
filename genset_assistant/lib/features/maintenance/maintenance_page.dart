@@ -130,22 +130,22 @@ class MaintenancePage extends StatelessWidget {
                     size: 48,
                     color: Theme.of(context).colorScheme.onPrimary,
                   ),
-                  SizedBox(height: 16),
-                  Text(
+                  const SizedBox(height: 16),
+                  const Text(
                     'Generator Maintenance',
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onPrimary,
+                      color: Color(0xFF000000), // Black text
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 8),
-                  Text(
+                  const SizedBox(height: 8),
+                  const Text(
                     'Regular care for optimal performance',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+                      color: Color(0xFF000000), // Black text
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -216,18 +216,18 @@ class MaintenancePage extends StatelessWidget {
                                   children: [
                                     Text(
                                       section['title'] as String,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
-                                        color: Theme.of(context).colorScheme.onSurface,
+                                        color: Color(0xFF000000),
                                       ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       section['description'] as String,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontSize: 14,
-                                        color: Theme.of(context).colorScheme.onSecondary,
+                                        color: Color(0xFF000000),
                                         height: 1.3,
                                       ),
                                     ),
@@ -338,10 +338,10 @@ class _MaintenanceDetailPageState extends State<MaintenanceDetailPage> {
                   child: SingleChildScrollView(
                     child: Text(
                       text,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 16,
                         height: 1.6,
-                        color: Theme.of(context).colorScheme.onSecondary,
+                        color: Color(0xFF000000),
                       ),
                     ),
                   ),
@@ -354,10 +354,10 @@ class _MaintenanceDetailPageState extends State<MaintenanceDetailPage> {
           const SizedBox(height: 8),
           Text(
             "Page ${_currentIndex + 1} of ${pages.length}",
-            style: TextStyle(
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 14,
-              color: Theme.of(context).colorScheme.onBackground,
+              color: Color(0xFF000000),
             ),
           ),
           const SizedBox(height: 12),
@@ -395,7 +395,7 @@ class _MaintenanceDetailPageState extends State<MaintenanceDetailPage> {
           const SizedBox(height: 80), // Added bottom padding to avoid navigation bar overlap
         ],
       )
-          : Center(child: Text("No content available", style: TextStyle(color: Theme.of(context).colorScheme.onSecondary))),
+          : const Center(child: Text("No content available", style: TextStyle(color: Color(0xFF000000)))),
     );
   }
 }

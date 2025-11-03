@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/genset_provider.dart';
 import '../../models/genset_model.dart';
+import '../../services/backend_service.dart';
 
 class LiveStatusPage extends StatefulWidget {
   const LiveStatusPage({super.key});
@@ -207,35 +208,67 @@ class _LiveStatusPageState extends State<LiveStatusPage>
   }
 
   Widget _buildStatusBadge(String status) {
-    final translatedStatus = _translateStatus(status);
-    final statusColor = _getStatusColor(status);
+    final statusData = _getStatusVisualData(status);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: [
+            statusData.color.withOpacity(0.15),
+            statusData.color.withOpacity(0.08),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(25),
         border: Border.all(
-          color: statusColor.withOpacity(0.3),
-          width: 1,
+          color: statusData.color.withOpacity(0.2),
+          width: 1.5,
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            _getStatusIcon(status),
-            color: statusColor,
-            size: 18,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            translatedStatus,
-            style: TextStyle(
-              color: statusColor,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: statusData.color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              statusData.icon,
+              color: statusData.color,
+              size: 20,
             ),
           ),
+          const SizedBox(width: 12),
+          Text(
+            statusData.label,
+            style: TextStyle(
+              color: statusData.color,
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+              letterSpacing: 0.5,
+            ),
+          ),
+          if (statusData.showPulse) ...[
+            const SizedBox(width: 8),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: statusData.color,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: statusData.color.withOpacity(0.5),
+                    blurRadius: 6,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -544,8 +577,7 @@ class _LiveStatusPageState extends State<LiveStatusPage>
   }
 
   Widget _buildGensetCard(Genset genset) {
-    final statusColor = _getStatusColor(genset.status);
-    final statusIcon = _getStatusIcon(genset.status);
+    final statusData = _getStatusVisualData(genset.status);
 
     return GestureDetector(
       onTap: () => showGensetDetails(genset),
@@ -569,7 +601,7 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: statusColor.withOpacity(0.15),
+                      color: statusData.color.withOpacity(0.15),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -593,8 +625,8 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  statusColor.withOpacity(0.8),
-                                  statusColor,
+                                  statusData.color.withOpacity(0.8),
+                                  statusData.color,
                                 ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -602,14 +634,14 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: statusColor.withOpacity(0.3),
+                                  color: statusData.color.withOpacity(0.3),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
                                 ),
                               ],
                             ),
                             child: Icon(
-                              statusIcon,
+                              statusData.icon,
                               color: Colors.white,
                               size: 28,
                             ),
@@ -629,23 +661,51 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                                   ),
                                 ),
                                 const SizedBox(height: 6),
+                                // Visual status indicator instead of text
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: statusColor.withOpacity(0.1),
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        statusData.color.withOpacity(0.1),
+                                        statusData.color.withOpacity(0.05),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
-                                      color: statusColor.withOpacity(0.3),
+                                      color: statusData.color.withOpacity(0.3),
                                       width: 1,
                                     ),
                                   ),
-                                  child: Text(
-                                    _translateStatus(genset.status),
-                                    style: TextStyle(
-                                      color: statusColor,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        statusData.icon,
+                                        color: statusData.color,
+                                        size: 14,
+                                      ),
+                                      if (statusData.showPulse) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          width: 6,
+                                          height: 6,
+                                          decoration: BoxDecoration(
+                                            color: statusData.color,
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: statusData.color.withOpacity(0.5),
+                                                blurRadius: 4,
+                                                spreadRadius: 1,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                 ),
                               ],
@@ -805,6 +865,47 @@ class _LiveStatusPageState extends State<LiveStatusPage>
     );
   }
 
+  _StatusVisualData _getStatusVisualData(String status) {
+    final translatedStatus = _translateStatus(status);
+    final statusLower = translatedStatus.toLowerCase();
+
+    if (statusLower.contains('running') || statusLower.contains('online')) {
+      return _StatusVisualData(
+        label: 'Active',
+        icon: Icons.play_circle_filled,
+        color: Colors.green.shade600,
+        showPulse: true,
+      );
+    } else if (statusLower.contains('alarm') || statusLower.contains('error')) {
+      return _StatusVisualData(
+        label: 'Alert',
+        icon: Icons.error,
+        color: Colors.red.shade600,
+        showPulse: true,
+      );
+    } else if (statusLower.contains('standby') || statusLower.contains('idle')) {
+      return _StatusVisualData(
+        label: 'Standby',
+        icon: Icons.pause_circle_filled,
+        color: Colors.blue.shade600,
+        showPulse: false,
+      );
+    } else if (statusLower.contains('offline')) {
+      return _StatusVisualData(
+        label: 'Offline',
+        icon: Icons.power_off,
+        color: Colors.grey.shade600,
+        showPulse: false,
+      );
+    }
+    return _StatusVisualData(
+      label: 'Unknown',
+      icon: Icons.help,
+      color: Colors.grey.shade600,
+      showPulse: false,
+    );
+  }
+
   String _translateStatus(String status) {
     final lowerStatus = status.toLowerCase();
     if (lowerStatus.contains('离线')) {
@@ -858,6 +959,8 @@ class _LiveStatusPageState extends State<LiveStatusPage>
     return genset.customer ?? 'N/A';
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -901,18 +1004,19 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                         return _buildEmptyState();
                       }
 
-                      return RefreshIndicator(
-                        onRefresh: () => gensetProvider.refreshGensets(),
-                        color: const Color(0xFF1E3A8A),
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(20),
-                          itemCount: gensetProvider.gensets.length,
-                          itemBuilder: (context, index) {
-                            final genset = gensetProvider.gensets[index];
-                            return _buildGensetCard(genset);
-                          },
-                        ),
-                      );
+                        return RefreshIndicator(
+                          onRefresh: () => gensetProvider.refreshGensets(),
+                          color: const Color(0xFF1E3A8A),
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(20),
+                            itemCount: gensetProvider.gensets.length,
+                            itemBuilder: (context, index) {
+                              final genset = gensetProvider.gensets[index];
+                              print('🔍 [UI] Rendering genset ${index + 1}/${gensetProvider.gensets.length}: ${genset.gsname} (${genset.powerRating}) - ${genset.statusName}');
+                              return _buildGensetCard(genset);
+                            },
+                          ),
+                        );
                     },
                   ),
                 ),
@@ -967,6 +1071,46 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                     ),
                   ],
                 ),
+              ),
+
+              // Sync to Airtable button
+              Consumer<GensetProvider>(
+                builder: (context, gensetProvider, child) {
+                  return ElevatedButton.icon(
+                    onPressed: gensetProvider.isLoading
+                        ? null
+                        : () async {
+                            try {
+                              await gensetProvider.fetchGensets();
+                              await gensetProvider.syncToAirtable();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Data fetched and synced to Airtable successfully'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          },
+                    icon: const Icon(Icons.sync),
+                    label: const Text('Fetch & Sync'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.2),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -1145,4 +1289,18 @@ class _LiveStatusPageState extends State<LiveStatusPage>
       ),
     );
   }
+}
+
+class _StatusVisualData {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool showPulse;
+
+  const _StatusVisualData({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.showPulse,
+  });
 }

@@ -15,7 +15,7 @@ class AirtableService {
   static Future<CustomerRecord?> getCustomerByEmail(String email) async {
     try {
       final cleanEmail = email.trim();
-      final filterFormula = '{email}="$cleanEmail"';
+      final filterFormula = '{Email}="$cleanEmail"'; // Use capital E as shown in logs
       final encodedFormula = Uri.encodeComponent(filterFormula);
       final url = '$_baseUrl?filterByFormula=$encodedFormula';
 
@@ -47,18 +47,18 @@ class AirtableService {
   }
 
   /// 📊 Fetch gensets from SmartGen API and sync to Airtable
-  static Future<List<Genset>> fetchGensetsFromSmartGen() async {
+  static Future<List<Genset>> fetchGensetsFromSmartGen({String? adminToken}) async {
     try {
-      // Get master token from environment
-      final masterToken = dotenv.env['SMARTGEN_UTOKEN'];
-      if (masterToken == null || masterToken.isEmpty) {
-        throw Exception('No SMARTGEN_UTOKEN found in environment');
+      // Use admin token if provided, otherwise use master token from environment
+      final apiToken = adminToken ?? dotenv.env['SMARTGEN_UTOKEN'];
+      if (apiToken == null || apiToken.isEmpty) {
+        throw Exception('No API token available (neither admin token nor SMARTGEN_UTOKEN found)');
       }
 
-      print('🔄 [Airtable] Fetching real data from SmartGen API...');
+      print('🔄 [Airtable] Fetching real data from SmartGen API${adminToken != null ? ' with admin token' : ' with master token'}...');
 
       // Fetch real data from SmartGen API
-      final smartGenUrl = 'https://www.smartgencloudplus.com/yewu/third/genset/list?utoken=$masterToken&page=1&per_page=10';
+      final smartGenUrl = 'https://www.smartgencloudplus.com/yewu/third/genset/list?utoken=$apiToken&page=1&per_page=10';
 
       final response = await http.get(Uri.parse(smartGenUrl));
 
@@ -123,7 +123,7 @@ class AirtableService {
         },
         body: jsonEncode({
           'fields': {
-            'email': customer.email,
+            'Email': customer.email,
             'Customer Name': customer.customerName,
             'Genset Name': customer.gensetName,
             'Token': updatedTokens.join(','), // Airtable 存储为逗号分隔字符串
@@ -161,7 +161,7 @@ class AirtableService {
         },
         body: jsonEncode({
           'fields': {
-            'email': customer.email,
+            'Email': customer.email,
             'Customer Name': customer.customerName,
             'Genset Name': customer.gensetName,
             'Token': utokens.join(','), // Airtable 存储为逗号分隔字符串
@@ -216,7 +216,7 @@ class CustomerRecord {
 
     return CustomerRecord(
       id: json['id'] ?? '',
-      email: fields['email'] ?? '',
+      email: fields['Email'] ?? '', // Use capital E as shown in logs
       customerName: fields['Customer Name'] ?? '',
       gensetName: fields['Genset Name'] ?? '',
       tokens: tokenList,

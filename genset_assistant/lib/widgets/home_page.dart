@@ -43,12 +43,12 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   final List<Map<String, dynamic>> serviceItems = const [
     {'icon': Icons.shopping_cart, 'label': 'Buy Genset', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
     {'icon': Icons.book, 'label': 'Instructions', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
-    {'icon': Icons.build_circle, 'label': 'Fix Issues', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
-    {'icon': Icons.engineering, 'label': 'Service', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
+    {'icon': Icons.build_circle, 'label': 'Troubleshooting', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
+    {'icon': Icons.engineering, 'label': 'Maintenance', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
     {'icon': Icons.cable, 'label': 'My Genset', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
     {'icon': Icons.chat, 'label': 'Contact Us', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
-    {'icon': Icons.monitor, 'label': 'Service', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
     {'icon': Icons.message, 'label': 'WhatsApp', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
+    {'icon': Icons.web, 'label': 'Website', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
   ];
 
   @override
@@ -293,14 +293,12 @@ class _HomePageWidgetState extends State<HomePageWidget> {
         );
         break;
       case 6:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const ServiceRecordsPage()),
-        );
-        break;
-      case 7:
         // WhatsApp quick action
         _launchWhatsApp();
+        break;
+      case 7:
+        // Website - launch company website
+        _launchWebsite();
         break;
     }
   }
@@ -327,6 +325,22 @@ class _HomePageWidgetState extends State<HomePageWidget> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _launchWebsite() async {
+    const String websiteUrl = 'https://genset.com.my/';
+    final Uri uri = Uri.parse(websiteUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      // Show error message if cannot launch URL
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to open website'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -1287,31 +1301,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Welcome to Genset Assistant',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const ProfilePage()),
-                            );
-                          },
-                          icon: const Icon(Icons.account_circle, color: Colors.white),
-                          tooltip: 'Profile',
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    // Chat input field with dropdown button
+                    // Chat input field with send button and user icon on the right
                     Row(
                       children: [
                         Expanded(
@@ -1395,6 +1385,17 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                 : 'Open chatbot',
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const ProfilePage()),
+                            );
+                          },
+                          icon: const Icon(Icons.account_circle, color: Colors.white),
+                          tooltip: 'Profile',
+                        ),
                       ],
                     ),
                   ],
@@ -1453,8 +1454,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                               item['label'],
                               style: TextStyle(
                                 fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: (item['label'] == 'Fix Issues' || item['label'] == 'Service') ? Colors.black : const Color(0xFF0F172A), // Text Color
+                                fontWeight: (item['label'] == 'Troubleshooting' || item['label'] == 'Maintenance') ? FontWeight.bold : FontWeight.w600,
+                                color: const Color(0xFF000000), // Pure black color
                               ),
                               textAlign: TextAlign.center,
                               maxLines: 3,

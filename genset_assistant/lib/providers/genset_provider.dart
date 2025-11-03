@@ -19,89 +19,94 @@ class GensetProvider with ChangeNotifier {
 
   bool get _hasError => _error.isNotEmpty;
 
-  // Fetch gensets from SmartGen API - strictly filter by user's assigned tokens only
+  // Fetch gensets from Node.js backend server
   Future<void> fetchGensets() async {
     _isLoading = true;
     _error = '';
     notifyListeners();
 
     try {
-      // Fetch real gensets from SmartGen API
-      print('🔄 [Flutter] Fetching real gensets from SmartGen API...');
-      final allGensets = await AirtableService.fetchGensetsFromSmartGen();
+      print('🔄 [Flutter] Fetching gensets from backend server...');
+      final gensets = await ApiService.fetchGensetsFromBackend();
 
-      if (allGensets.isEmpty) {
-        throw Exception('No gensets found in SmartGen API');
+      if (gensets.isEmpty) {
+        print('ℹ️ [Flutter] Backend returned no gensets (this is normal)');
+        _gensets = [];
+        _error = '';
+        print('🎯 [Flutter] No gensets to display');
+      } else {
+        print('✅ [Flutter] Backend returned ${gensets.length} gensets');
+        print('📱 [Flutter] Gensets: ${gensets.map((g) => '${g.name} (${g.power})').toList()}');
+
+        _gensets = gensets;
+        _error = '';
+        print('🎯 [Flutter] Displaying ${gensets.length} gensets in Live Status');
       }
-
-      print('📊 [Flutter] SmartGen API returned ${allGensets.length} total gensets');
-      print('📱 [Flutter] All gensets: ${allGensets.map((g) => '${g.name} (${g.power})').toList()}');
-
-      // Filter gensets based on tokens from Database table (even without authentication)
-      List<Genset> displayGensets = allGensets;
-
-      try {
-        // Try to get user tokens from Database table
-        final userTokens = await ApiService.getCurrentUserUtokens();
-        if (userTokens != null && userTokens.isNotEmpty) {
-          print('🔑 [Flutter] User authenticated with ${userTokens.length} tokens: ${userTokens.map((t) => t.substring(0, 10) + '...').toList()}');
-
-          // Filter gensets to only show those assigned to this user
-          displayGensets = allGensets.where((genset) {
-            final gensetToken = genset.specifications?['token'] as String?;
-            return gensetToken != null && userTokens.contains(gensetToken);
-          }).toList();
-
-          print('✅ [Flutter] Filtered to ${displayGensets.length} gensets assigned to user');
-          if (displayGensets.isEmpty) {
-            print('⚠️ [Flutter] No gensets match user tokens');
-            throw Exception('No gensets found matching your assigned tokens. Please contact support.');
-          }
-        } else {
-          // User not authenticated - try to filter using tokens from Database table
-          print('🔄 [Flutter] User not authenticated, trying to fetch tokens from Database table...');
-
-          try {
-            // Always fetch fresh tokens from Database table
-            final customerMapping = await CustomerMappingService.fetchCustomerMappingByEmail(forceRefresh: true);
-            if (customerMapping != null && customerMapping.tokens.isNotEmpty) {
-              print('🔑 [Flutter] Found ${customerMapping.tokens.length} tokens in Database table: ${customerMapping.tokens.map((t) => t.substring(0, 10) + '...').toList()}');
-
-              displayGensets = allGensets.where((genset) {
-                final gensetToken = genset.specifications?['token'] as String?;
-                return gensetToken != null && customerMapping.tokens.contains(gensetToken);
-              }).toList();
-
-              print('🎯 [Flutter] Filtered to ${displayGensets.length} gensets using Database tokens');
-              if (displayGensets.isEmpty) {
-                print('⚠️ [Flutter] No gensets match Database tokens');
-                throw Exception('No gensets found matching your assigned tokens. Please contact support.');
-              }
-            } else {
-              print('⚠️ [Flutter] No tokens found in Database table');
-              throw Exception('No tokens found in Database table. Please contact support.');
-            }
-          } catch (e) {
-            print('⚠️ [Flutter] Could not fetch Database tokens: $e');
-            throw Exception('Unable to fetch tokens from Database table. Please contact support.');
-          }
-        }
-      } catch (e) {
-        print('ℹ️ [Flutter] Token filtering failed: $e');
-        throw Exception('Unable to filter gensets by your assigned tokens. Please contact support.');
-      }
-
-      _gensets = displayGensets;
-      _error = '';
-      print('🎯 [Flutter] Displaying ${displayGensets.length} gensets in Live Status');
 
     } catch (e) {
       _error = _getErrorMessage(e.toString());
       _gensets = [];
-      print('❌ [Flutter] Error fetching gensets: $e');
+      print('❌ [Flutter] Error fetching gensets from backend: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // Sync data to Airtable via backend server
+  Future<void> syncToAirtable() async {
+    try {
+      print('🔄 [Flutter] Syncing data to Airtable via backend...');
+      await ApiService.syncToAirtable();
+      print('✅ [Flutter] Sync to Airtable successful');
+    } catch (e) {
+      print('❌ [Flutter] Error syncing to Airtable: $e');
+      rethrow;
+    }
+  }
+
+  // Create a new genset
+  Future<void> createGenset(Map<String, dynamic> fields) async {
+    try {
+      print('➕ [Flutter] Creating new genset...');
+      final newGenset = await ApiService.createGenset(fields);
+      _gensets.add(newGenset);
+      notifyListeners();
+      print('✅ [Flutter] Genset created successfully');
+    } catch (e) {
+      print('❌ [Flutter] Error creating genset: $e');
+      rethrow;
+    }
+  }
+
+  // Update an existing genset
+  Future<void> updateGenset(String recordId, Map<String, dynamic> fields) async {
+    try {
+      print('🔄 [Flutter] Updating genset $recordId...');
+      final updatedGenset = await ApiService.updateGenset(recordId, fields);
+      final index = _gensets.indexWhere((g) => g.id == recordId);
+      if (index != -1) {
+        _gensets[index] = updatedGenset;
+        notifyListeners();
+      }
+      print('✅ [Flutter] Genset updated successfully');
+    } catch (e) {
+      print('❌ [Flutter] Error updating genset: $e');
+      rethrow;
+    }
+  }
+
+  // Delete a genset
+  Future<void> deleteGenset(String recordId) async {
+    try {
+      print('🗑️ [Flutter] Deleting genset $recordId...');
+      await ApiService.deleteGenset(recordId);
+      _gensets.removeWhere((g) => g.id == recordId);
+      notifyListeners();
+      print('✅ [Flutter] Genset deleted successfully');
+    } catch (e) {
+      print('❌ [Flutter] Error deleting genset: $e');
+      rethrow;
     }
   }
 

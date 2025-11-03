@@ -5,11 +5,13 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/generator_model.dart';
 import '../models/genset_model.dart';
 import 'airtable_service.dart';
+import 'backend_service.dart';
 
 class ApiService {
   static const String baseUrl = 'https://backendmirror.netlify.app';
+  static const String gensetsEndpoint = '$baseUrl/.netlify/functions/gensets';
+  static const String syncEndpoint = '$baseUrl/.netlify/functions/sync-to-airtable';
 
-  /// 获取当前用户的 utoken 从 Airtable
   static Future<List<String>?> getCurrentUserUtokens() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -31,13 +33,11 @@ class ApiService {
     }
   }
 
-  /// 获取当前用户的 utoken 从 Airtable (向后兼容)
   static Future<String?> getCurrentUserUtoken() async {
     final tokens = await getCurrentUserUtokens();
     return tokens?.first;
   }
 
-  /// 获取发电机状态
   Future<GeneratorStatus> getGeneratorStatus() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -70,7 +70,7 @@ class ApiService {
     }
   }
 
-  /// 获取保养记录
+  
   Future<List<ServiceRecordModel>> getServiceRecords() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -121,32 +121,51 @@ class ApiService {
     }
   }
 
-  /// ✅ 获取 genset 列表（已修正 Mirror API 格式）
-  Future<List<Genset>> getGensetList(String utoken) async {
+  // REMOVED: Direct SmartGen API calls - now using Netlify backend
+  // The backend handles fetching from SmartGen and syncing to Airtable
+
+  /// Fetch gensets from Airtable backend
+  /// Returns empty list if no data available (normal behavior)
+  static Future<List<Genset>> fetchGensetsFromBackend() async {
     try {
-      final response = await http.get(
-        Uri.parse(
-          'https://www.smartgencloudplus.com/yewu/third/genset/list?utoken=$utoken&page=1&per_page=10',
-        ),
-      );
+      final gensets = await BackendService.fetchGensets();
 
-      if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        print('🛰️ API Response: $jsonData'); // 调试输出
-
-        // ✅ 修正：Mirror API 的数据在 data.list
-        if (jsonData['data'] != null && jsonData['data']['list'] is List) {
-          final list = jsonData['data']['list'] as List;
-          return list.map((item) => Genset.fromJson(item)).toList();
-        } else {
-          throw Exception('Invalid response format: Missing data.list');
-        }
+      if (gensets.isEmpty) {
+        print('ℹ️ No gensets data available from backend (this is normal)');
       } else {
-        throw Exception('Failed to load genset list');
+        print('✅ Fetched ${gensets.length} gensets from backend');
       }
+
+      return gensets;
     } catch (e) {
-      print('Error fetching genset list: $e');
+      print('❌ Error fetching gensets from backend: $e');
+      // Return empty list instead of throwing - handle gracefully in UI
       return [];
     }
+  }
+
+  /// Sync data to Airtable via backend server (using BackendService for dynamic URL)
+  static Future<void> syncToAirtable() async {
+    return BackendService.syncToAirtable();
+  }
+
+  /// Create a new genset record
+  static Future<Genset> createGenset(Map<String, dynamic> fields) async {
+    return BackendService.createGenset(fields);
+  }
+
+  /// Update an existing genset record
+  static Future<Genset> updateGenset(String recordId, Map<String, dynamic> fields) async {
+    return BackendService.updateGenset(recordId, fields);
+  }
+
+  /// Delete a genset record
+  static Future<void> deleteGenset(String recordId) async {
+    return BackendService.deleteGenset(recordId);
+  }
+
+  /// Sync a genset to Airtable using correct field names
+  static Future<bool> syncGensetToAirtable(Genset genset) async {
+    return BackendService.syncGensetToAirtable(genset);
   }
 }

@@ -15,10 +15,14 @@ import 'features/auth/login_page.dart';
 import 'providers/genset_provider.dart' as gp;
 import 'services/notification_service.dart';
 import 'widgets/home_page.dart' show HomePageWidget;
+import 'config/config_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load();
+
+  // Initialize configuration (defaults to local for debug, production for release)
+  ConfigManager.initialize();
 
   // Initialize Firebase
   await Firebase.initializeApp();
@@ -162,7 +166,6 @@ class _HomePageState extends State<HomePage> {
     HomePageWidget(),
     ProductsScreen(initialCategory: 0),
     LearnPage(),
-    ServiceRecordsPage(),
     LiveStatusPage(), // ✅ 所有 genset 数据都在这里
     ContactPage(),
   ];
@@ -283,22 +286,6 @@ class _HomePageState extends State<HomePage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
-                    Icons.build_circle_rounded,
-                    size: 22,
-                  ),
-                ),
-                label: 'Service',
-              ),
-              BottomNavigationBarItem(
-                icon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _selectedIndex == 4
-                        ? const Color(0xFF1E3A8A).withOpacity(0.2)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
                     Icons.visibility_rounded,
                     size: 22,
                   ),
@@ -309,7 +296,7 @@ class _HomePageState extends State<HomePage> {
                 icon: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _selectedIndex == 5
+                    color: _selectedIndex == 4
                         ? const Color(0xFF1E3A8A).withOpacity(0.2)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(12),

@@ -79,21 +79,50 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
     try {
-      // Google Sign In with Firebase Auth - handles both sign up and sign in automatically
       print('🔐 Starting Google Sign In...');
 
-      // Use Firebase Auth's built-in Google Sign-In
-      final googleProvider = GoogleAuthProvider();
-      googleProvider.addScope('email');
-      googleProvider.addScope('profile');
+      // Create GoogleSignIn instance
+      final GoogleSignIn googleSignIn = GoogleSignIn();
 
-      print('🔐 Attempting Firebase Google Sign In...');
+      print('🔐 Resetting Google Sign In session to force account chooser...');
 
-      // This will automatically handle both sign-up and sign-in
-      final userCredential = await FirebaseAuth.instance.signInWithProvider(googleProvider);
+      // Force sign out to ensure account chooser always appears
+      await googleSignIn.signOut();
+
+      print('🔐 Attempting native Google Sign In with account chooser...');
+
+      // Sign in with Google - this will always show the account chooser
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+      if (googleUser == null) {
+        print('⚠️ User canceled Google Sign In');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Sign in was cancelled'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      print('✅ Google Sign In successful: ${googleUser.email}');
+
+      // Get authentication credentials
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // Create Firebase credential
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase with the credential
+      final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
 
       if (userCredential.user != null) {
-        print('✅ Firebase Google sign in successful: ${userCredential.user?.email}');
+        print('✅ Firebase authentication successful: ${userCredential.user?.email}');
 
         // Check if user has tagging in Airtable
         final customerRecord = await AirtableService.getCustomerByEmail(userCredential.user!.email!);
@@ -130,16 +159,14 @@ class _LoginPageState extends State<LoginPage> {
       print('❌ Google Sign In failed: $e');
       if (mounted) {
         String errorMessage = 'Google Sign In failed';
-        if (e.toString().contains('invalid-cert-hash')) {
-          errorMessage = 'Firebase project not configured for Google Sign-In. Please check Firebase console settings.';
-        } else if (e.toString().contains('network')) {
+        if (e.toString().contains('network')) {
           errorMessage = 'Network error. Please check your connection.';
         } else if (e.toString().contains('canceled')) {
           errorMessage = 'Sign in was cancelled.';
-        } else if (e.toString().contains('popup')) {
-          errorMessage = 'Sign in popup was blocked. Please allow popups and try again.';
-        } else if (e.toString().contains('web')) {
-          errorMessage = 'Google Sign In requires web context. Please check your configuration.';
+        } else if (e.toString().contains('sign_in_failed')) {
+          errorMessage = 'Google Sign In failed. Please try again.';
+        } else if (e.toString().contains('sign_in_required')) {
+          errorMessage = 'Google Sign In is required but not available.';
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -382,33 +409,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
 
-              // Debug info (remove in production)
-              const SizedBox(height: 16),
-              FutureBuilder<String>(
-                future: _getAuthDebugInfo(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    return Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Text(
-                        'Debug: ${snapshot.data}',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey,
-                          fontFamily: 'monospace',
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
+
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,

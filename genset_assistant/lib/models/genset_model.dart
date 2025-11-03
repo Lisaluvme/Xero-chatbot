@@ -1,71 +1,83 @@
 class Genset {
-  final String id;
-  final String name;
-  final String status;
-  final String location;
-  final String model;
-  final String brand;
-  final String power;
-  final String category;
-  final String price;
-  final String description;
-  final String image;
-  final String fuel;
-  final String? customer;
-  final String? maintenanceStatus;
-  final Map<String, dynamic>? specifications;
-  final List<String>? features;
-  final List<String>? applications;
+  final String id; // Backend record ID
+  final String gensetId; // Maps to "Genset ID"
+  final String gsname; // Maps to "gsname"
+  final String statusName; // Maps to "status_name"
+  final double? longitude; // Maps to "longitude"
+  final double? latitude; // Maps to "latitude"
+  final String? totaltime; // Maps to "totaltime"
+  final String? daytime; // Maps to "daytime"
+  final String? token; // Maps to "Token"
+  final String? source; // Maps to "_source"
+
+  // Backward compatibility fields
+  String get name => gsname;
+  String get status => statusName;
+  String get location => '${latitude ?? 0}, ${longitude ?? 0}';
+
+  // Additional computed fields for UI compatibility
+  String get model => ''; // Not in backend, default empty
+  String get brand => 'MGM'; // Default brand
+  String get power => powerRating; // Extract from gsname
+  String get category => 'Diesel Generator'; // Default category
+  String get fuel => 'Diesel'; // Default fuel
+  String? get customer => null; // Not in backend
+  String? get maintenanceStatus => null; // Not in backend
+  String? get databaseLink => null; // Not in backend
+  Map<String, dynamic>? get specifications => {
+    'token': token,
+    'longitude': longitude,
+    'latitude': latitude,
+    'totaltime': totaltime,
+    'daytime': daytime,
+    'source': source,
+  }; // Computed from available fields
+  List<String>? get features => null; // Not in backend
+  List<String>? get applications => null; // Not in backend
 
   Genset({
     required this.id,
-    required this.name,
-    required this.status,
-    required this.location,
-    this.model = '',
-    this.brand = 'MGM',
-    this.power = '',
-    this.category = 'Diesel Generator',
-    this.price = '',
-    this.description = '',
-    this.image = '',
-    this.fuel = 'Diesel',
-    this.customer,
-    this.maintenanceStatus,
-    this.specifications,
-    this.features,
-    this.applications,
+    required this.gensetId,
+    required this.gsname,
+    required this.statusName,
+    this.longitude,
+    this.latitude,
+    this.totaltime,
+    this.daytime,
+    this.token,
+    this.source,
   });
 
   factory Genset.fromJson(Map<String, dynamic> json) {
-    // Map SmartGen API fields to our model
+    // Handle backend response format (flattened, not nested in 'fields')
     return Genset(
       id: json['id']?.toString() ?? '',
-      name: json['gsname'] ?? json['name'] ?? '',
-      status: json['status_name'] ?? json['status'] ?? '',
-      location: json['gsaddress'] ?? json['location'] ?? '',
-      model: json['modulename'] ?? json['model'] ?? '',
-      brand: 'MGM', // Default brand
-      power: _extractPowerFromName(json['gsname'] ?? ''),
-      category: 'Diesel Generator',
-      price: '',
-      description: json['gsname'] ?? '',
-      image: json['gsimg'] ?? json['image'] ?? '',
-      fuel: 'Diesel',
-      customer: null,
-      maintenanceStatus: null,
-      specifications: {
-        'token': json['token'],
-        'moduleid': json['moduleid'],
-        'hostid': json['hostid'],
-        'totalhour': json['totalhour'],
-        'totalminute': json['totalminute'],
-        'alarmnum': json['alarmnum'],
-        'longitude': json['longitude'],
-        'latitude': json['latitude'],
-      },
-      features: null,
-      applications: null,
+      gensetId: json['Genset ID']?.toString() ?? '',
+      gsname: json['gsname']?.toString() ?? '',
+      statusName: json['status_name']?.toString() ?? '',
+      longitude: json['longitude'] != null ? double.tryParse(json['longitude'].toString()) : null,
+      latitude: json['latitude'] != null ? double.tryParse(json['latitude'].toString()) : null,
+      totaltime: json['totaltime']?.toString(),
+      daytime: json['daytime']?.toString(),
+      token: json['Token']?.toString(),
+      source: json['_source']?.toString(),
+    );
+  }
+
+  // Factory method for SmartGen API response format
+  factory Genset.fromSmartGenJson(Map<String, dynamic> json) {
+    // SmartGen API response format mapping - matches actual API response
+    return Genset(
+      id: json['id']?.toString() ?? '',
+      gensetId: json['id']?.toString() ?? '', // Use id as gensetId
+      gsname: json['gsname']?.toString() ?? '', // Correct field name
+      statusName: json['status_name']?.toString() ?? 'Unknown', // Correct field name
+      longitude: json['longitude'] != null ? double.tryParse(json['longitude'].toString()) : null,
+      latitude: json['latitude'] != null ? double.tryParse(json['latitude'].toString()) : null,
+      totaltime: json['totaltime']?.toString() ?? '0h0min', // Correct field name
+      daytime: json['daytime']?.toString() ?? '0h0min', // Correct field name
+      token: json['token']?.toString() ?? '',
+      source: 'SmartGen API',
     );
   }
 
@@ -89,33 +101,32 @@ class Genset {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'name': name,
-      'status': status,
-      'location': location,
-      'model': model,
-      'brand': brand,
-      'power': power,
-      'category': category,
-      'price': price,
-      'description': description,
-      'image': image,
-      'fuel': fuel,
-      'customer': customer,
-      'maintenanceStatus': maintenanceStatus,
-      'specifications': specifications,
-      'features': features,
-      'applications': applications,
+      'Genset ID': gensetId,
+      'gsname': gsname,
+      'status_name': statusName,
+      'longitude': longitude,
+      'latitude': latitude,
+      'totaltime': totaltime,
+      'daytime': daytime,
+      'Database Link': databaseLink,
+      'Token': token,
     };
   }
 
   // Helper method to get formatted display name
-  String get displayName => '$brand $name';
+  String get displayName => gsname;
 
-  // Helper method to get power rating for easy access
-  String get powerRating => power.isNotEmpty ? power : 'N/A';
+  // Helper method to get power rating for easy access (extract from gsname)
+  String get powerRating => _extractPowerFromName(gsname);
 
   // Helper method to check if this is a specific kVA rating
   bool hasKvaRating(String kva) {
-    return power.toLowerCase().contains(kva.toLowerCase());
+    return powerRating.toLowerCase().contains(kva.toLowerCase());
+  }
+
+  // Override toString for better debugging
+  @override
+  String toString() {
+    return '${gsname} (${powerRating}) - ${statusName}';
   }
 }
