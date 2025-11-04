@@ -26,7 +26,7 @@ android {
         applicationId = "com.company.genset_assistant"
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion 36
-        versionCode = 6
+        versionCode = 7
         versionName = flutter.versionName
     }
 
