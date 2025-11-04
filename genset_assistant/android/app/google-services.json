@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "459370345585-8fgke0tg7tvluvablo6mgl9lqfn2grq9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.company.genset_assistant",
+            "certificate_hash": "974d6ac729bb221686f831eb0c776ce730587fa1"
+          }
+        },
+        {
           "client_id": "459370345585-vb7ctrbml1tgoi4hsie80rhu05v184o5.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

@@ -2,7 +2,7 @@ name: genset_assistant
 description: A Flutter application to assist users in learning about, maintaining, and troubleshooting generators.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.1.1
+version: 1.3.0
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -74,17 +74,17 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/icons/mg_logo.png"
+  image_path: "assets/Genset App Logo.png"
   min_sdk_android: 21
   web:
     generate: true
-    image_path: "assets/icons/mg_logo.png"
+    image_path: "assets/Genset App Logo.png"
     background_color: "#ffffff"
     theme_color: "#ffffff"
   windows:
     generate: true
-    image_path: "assets/icons/mg_logo.png"
+    image_path: "assets/Genset App Logo.png"
     icon_size: 48
   macos:
     generate: true
-    image_path: "assets/icons/mg_logo.png"
+    image_path: "assets/Genset App Logo.png"
