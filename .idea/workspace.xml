@@ -6,116 +6,25 @@
   <component name="ChangeListManager">
     <list default="true" id="dd1cc84a-3201-4abe-aaca-9b011fa16d0d" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/megagenset99.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/megagenset99.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/Mega_Genset.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/Mega_Genset.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/Dart_Packages.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/libraries/Dart_Packages.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/.env" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/.metadata" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/analysis_options.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/.gradle/8.7/checksums/checksums.lock" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/.gradle/8.7/checksums/md5-checksums.bin" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/.gradle/8.7/checksums/sha1-checksums.bin" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/.gradle/8.7/dependencies-accessors/gc.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/.gradle/8.7/executionHistory/executionHistory.bin" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/.gradle/8.7/executionHistory/executionHistory.lock" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/.gradle/8.7/fileChanges/last-build.bin" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/.gradle/8.7/fileHashes/fileHashes.bin" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/.gradle/8.7/fileHashes/fileHashes.lock" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/.gradle/8.7/fileHashes/resourceHashesCache.bin" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/.gradle/8.7/gc.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/.gradle/buildOutputCleanup/cache.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/.gradle/buildOutputCleanup/outputFiles.bin" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/.gradle/file-system.probe" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/.gradle/noVersion/buildLogic.lock" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/.gradle/vcs-1/gc.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/app/build.gradle" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/app/google-services.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/app/src/debug/AndroidManifest.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/app/src/main/AndroidManifest.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/app/src/main/kotlin/com/company/megagenset99/MainActivity.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/app/src/main/res/drawable-v21/launch_background.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/app/src/main/res/drawable/launch_background.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/app/src/main/res/mipmap-hdpi/ic_launcher.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/app/src/main/res/mipmap-mdpi/ic_launcher.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/app/src/main/res/values-night/styles.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/app/src/main/res/values/colors.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/app/src/main/res/values/styles.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/app/src/profile/AndroidManifest.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/app/upload-keystore.jks" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/build.gradle" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/gradle.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/gradle/wrapper/gradle-wrapper.jar" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/gradle/wrapper/gradle-wrapper.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/gradlew" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/gradlew.bat" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/key.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/local.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/settings.gradle" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/android/upload-keystore.jks" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/assets/knowledge_base.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/firestore.rules" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/ios/Flutter/Generated.xcconfig" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/ios/Flutter/ephemeral/flutter_lldb_helper.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/ios/Flutter/ephemeral/flutter_lldbinit" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/ios/Flutter/flutter_export_environment.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/ios/Runner/GeneratedPluginRegistrant.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/ios/Runner/GeneratedPluginRegistrant.m" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/features/ai_chat/ai_chat_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/features/ai_chat/openai_settings_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/features/auth/login_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/features/auth/profile_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/features/auth/register_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/features/auth/utoken_assignment_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/features/contact/contact_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/features/dashboard/dashboard_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/features/learn/learn_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/features/live_status/live_status_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/features/maintenance/maintenance_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/features/products/product_details_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/features/products/products_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/features/service_records/service_records_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/features/troubleshooting/troubleshooting_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/features/user_manual/user_manual_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/main.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/models/generator_model.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/models/genset_model.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/models/mirror_api_model.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/models/mirror_genset_model.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/models/product_model.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/providers/genset_provider.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/services/airtable_service.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/services/api_config.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/services/api_service.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/services/customer_mapping_service.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/services/deepseek_service.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/services/mirror_api_service.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/services/notification_service.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/services/wordpress_service.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/utils/constants.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/widgets/home_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/lib/widgets/news_detail_page.dart" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/linux/flutter/ephemeral/.plugin_symlinks/flutter_local_notifications_linux" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/linux/flutter/ephemeral/.plugin_symlinks/path_provider_linux" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/linux/flutter/ephemeral/.plugin_symlinks/share_plus" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/linux/flutter/ephemeral/.plugin_symlinks/shared_preferences_linux" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/linux/flutter/ephemeral/.plugin_symlinks/url_launcher_linux" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/linux/flutter/generated_plugin_registrant.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/linux/flutter/generated_plugin_registrant.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/linux/flutter/generated_plugins.cmake" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/macos/Flutter/GeneratedPluginRegistrant.swift" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/macos/Flutter/ephemeral/Flutter-Generated.xcconfig" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/macos/Flutter/ephemeral/flutter_export_environment.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/pubspec.lock" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/genset_assistant_new/pubspec.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant/.metadata" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant/.metadata" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant/ios/Flutter/Generated.xcconfig" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant/ios/Flutter/Generated.xcconfig" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant/ios/Flutter/flutter_export_environment.sh" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant/ios/Flutter/flutter_export_environment.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant/lib/features/auth/login_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant/lib/features/auth/login_page.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant/lib/features/auth/register_page.dart" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant/lib/features/auth/register_page.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant/macos/Flutter/ephemeral/Flutter-Generated.xcconfig" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant/macos/Flutter/ephemeral/Flutter-Generated.xcconfig" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/genset_assistant/macos/Flutter/ephemeral/flutter_export_environment.sh" beforeDir="false" afterPath="$PROJECT_DIR$/genset_assistant/macos/Flutter/ephemeral/flutter_export_environment.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify.toml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/admin-utoken.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/alarm-list.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/genset-list.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/genset-start.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/genset-stop.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/gensets.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/package.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/netlify/functions/sync.js" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -127,6 +36,11 @@
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[DeviceId(pluginId=LocalEmulator, isTemplate=false, identifier=path=C:\Users\tm\.android\avd\Pixel_5.avd)]" />
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="main" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="ROOT_SYNC" value="DONT_SYNC" />
   </component>
@@ -170,7 +84,7 @@
     &quot;com.android.tools.idea.streaming.emulator.frame.visible&quot;: &quot;false&quot;,
     &quot;com.google.services.firebase.aqiPopupShown&quot;: &quot;true&quot;,
     &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;Local-api-backend&quot;,
     &quot;io.flutter.reload.alreadyRun&quot;: &quot;true&quot;,
     &quot;last_opened_file_path&quot;: &quot;C:/Users/tm/StudioProjects/megagenset99&quot;,
     &quot;project.structure.last.edited&quot;: &quot;Project&quot;,

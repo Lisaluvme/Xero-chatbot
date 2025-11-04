@@ -24,24 +24,36 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+
   Future<void> _signUp() async {
-    if (_emailController.text.isEmpty ||
-        _passwordController.text.isEmpty ||
-        _confirmPasswordController.text.isEmpty) {
+    final cleanEmail = _emailController.text.trim().toLowerCase();
+    final cleanPassword = _passwordController.text.trim();
+
+    if (cleanEmail.isEmpty || cleanPassword.isEmpty || _confirmPasswordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
       );
       return;
     }
 
-    if (_passwordController.text != _confirmPasswordController.text) {
+    if (!_isValidEmail(cleanEmail)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email address')),
+      );
+      return;
+    }
+
+    if (cleanPassword != _confirmPasswordController.text.trim()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Passwords do not match')),
       );
       return;
     }
 
-    if (_passwordController.text.length < 6) {
+    if (cleanPassword.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Password must be at least 6 characters')),
       );
@@ -52,8 +64,8 @@ class _RegisterPageState extends State<RegisterPage> {
     try {
       // Create user with Firebase Auth
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+        email: cleanEmail,
+        password: cleanPassword,
       );
       // Navigation will be handled by StreamBuilder in main.dart
     } catch (e) {

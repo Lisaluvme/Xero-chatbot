@@ -24,6 +24,10 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+
   Future<void> _signIn() async {
     final cleanEmail = _emailController.text.trim().toLowerCase();
     final cleanPassword = _passwordController.text.trim();
@@ -31,6 +35,13 @@ class _LoginPageState extends State<LoginPage> {
     if (cleanEmail.isEmpty || cleanPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
+
+    if (!_isValidEmail(cleanEmail)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email address')),
       );
       return;
     }
@@ -182,50 +193,7 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Future<void> _handlePostLogin(String email) async {
-    try {
-      // Navigate to home page
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/');
-      }
-    } catch (e) {
-      if (mounted) {
-        _showErrorDialog('Error', 'Failed to proceed: ${e.toString()}');
-      }
-    }
-  }
 
-  void _showErrorDialog(String title, String message) {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(title, style: TextStyle(color: Colors.red)),
-          content: Text(message),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<String> _getAuthDebugInfo() async {
-    try {
-      final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser != null) {
-        return 'User: ${currentUser.email} (UID: ${currentUser.uid})';
-      } else {
-        return 'No user currently signed in';
-      }
-    } catch (e) {
-      return 'Auth Debug Error: $e';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
