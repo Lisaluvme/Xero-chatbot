@@ -1,9 +1,12 @@
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/genset_model.dart';
 import '../services/airtable_service.dart';
 import '../services/api_service.dart';
 import '../services/customer_mapping_service.dart';
+import '../services/watch_service.dart';
 
 class GensetProvider with ChangeNotifier {
   List<Genset> _gensets = [];
@@ -41,6 +44,10 @@ class GensetProvider with ChangeNotifier {
         _gensets = gensets;
         _error = '';
         print('🎯 [Flutter] Displaying ${gensets.length} gensets in Live Status');
+        // Send data to watch only if account actually has gensets
+        _sendDataToWatch();
+        // Update widget with latest genset data
+        _updateWidgetData();
       }
 
     } catch (e) {
@@ -51,6 +58,89 @@ class GensetProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  // Check if we're in development simulator mode where mock data should be used
+  bool _isDevelopmentSimulatorMode() {
+    // Temporary: Always return true for testing watch functionality on simulator
+    // This will load mock genset data for watch testing
+    // TODO: In production, this should check for actual simulator environment
+    return !kIsWeb;
+  }
+
+  bool _isIOSSimulator() {
+    // Check if running on iOS simulator based on platform info
+    // This is a heuristic - in production this wouldn't reliably detect simulator
+    try {
+      final platform = Platform.isIOS;
+      final deviceInfo = '';
+      return platform && deviceInfo.toLowerCase().contains('simulator');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  bool _isExplicitTestingMode() {
+    // This allows explicit enabling for testing via environment variable
+    return const bool.fromEnvironment('ENABLE_MOCK_GENSETS', defaultValue: false);
+  }
+
+  // Load mock gensets for development/testing when no real API access is available
+  Future<void> _loadMockGensetsForTesting() async {
+    print('🔧 [Flutter] Loading mock genset data for development testing...');
+
+    // Simulate network delay
+    await Future.delayed(const Duration(seconds: 1));
+
+    // Create realistic mock genset data
+    _gensets = [
+      Genset(
+        id: 'mock-gen-001',
+        gensetId: 'GEN-001',
+        gsname: '30KVA MAIN GEN A1',
+        statusName: 'Running',
+        longitude: 103.8198,
+        latitude: 1.3521,
+        totaltime: '1425h30min',
+        daytime: '450h15min',
+        token: 'mock-token-001',
+        source: 'Mock Data',
+      ),
+      Genset(
+        id: 'mock-gen-002',
+        gensetId: 'GEN-002',
+        gsname: '60KVA BACKUP GEN B2',
+        statusName: 'Standby',
+        longitude: 103.8200,
+        latitude: 1.3523,
+        totaltime: '876h45min',
+        daytime: '200h30min',
+        token: 'mock-token-002',
+        source: 'Mock Data',
+      ),
+      Genset(
+        id: 'mock-gen-003',
+        gensetId: 'GEN-003',
+        gsname: '100KVA MOBILE GEN C3',
+        statusName: 'Offline',
+        longitude: 103.8195,
+        latitude: 1.3518,
+        totaltime: '2103h12min',
+        daytime: '890h25min',
+        token: 'mock-token-003',
+        source: 'Mock Data',
+      ),
+    ];
+
+    _error = '';
+    print('✅ [Flutter] Loaded ${gensets.length} mock gensets for testing');
+    print('📱 [Flutter] Mock Gensets: ${gensets.map((g) => '${g.name} (${g.power})').toList()}');
+
+    // Send mock data to watch for testing
+    _sendDataToWatch();
+
+    _isLoading = false;
+    notifyListeners();
   }
 
   // Sync data to Airtable via backend server
@@ -73,6 +163,8 @@ class GensetProvider with ChangeNotifier {
       _gensets.add(newGenset);
       notifyListeners();
       print('✅ [Flutter] Genset created successfully');
+      // Sync to watch with updated data
+      _sendDataToWatch();
     } catch (e) {
       print('❌ [Flutter] Error creating genset: $e');
       rethrow;
@@ -88,8 +180,10 @@ class GensetProvider with ChangeNotifier {
       if (index != -1) {
         _gensets[index] = updatedGenset;
         notifyListeners();
+        print('✅ [Flutter] Genset updated successfully');
+        // Sync updated data to watch
+        _sendDataToWatch();
       }
-      print('✅ [Flutter] Genset updated successfully');
     } catch (e) {
       print('❌ [Flutter] Error updating genset: $e');
       rethrow;
@@ -104,6 +198,10 @@ class GensetProvider with ChangeNotifier {
       _gensets.removeWhere((g) => g.id == recordId);
       notifyListeners();
       print('✅ [Flutter] Genset deleted successfully');
+      // Sync updated data to watch (after deletion)
+      if (_gensets.isNotEmpty) {
+        _sendDataToWatch();
+      }
     } catch (e) {
       print('❌ [Flutter] Error deleting genset: $e');
       rethrow;
@@ -113,6 +211,12 @@ class GensetProvider with ChangeNotifier {
   // Refresh gensets data
   Future<void> refreshGensets() async {
     await fetchGensets();
+  }
+
+  // Sync current data to watch (for initialization or manual sync)
+  void syncToWatch() {
+    _sendDataToWatch();
+    print('📱 Manually syncing current genset data to watch');
   }
 
   // Clear error state
@@ -168,11 +272,132 @@ class GensetProvider with ChangeNotifier {
     }
   }
 
-  // Reset provider state (useful for logout)
+  // Reset provider state (useful for logout) - also clear watch data
   void reset() {
     _gensets = [];
     _isLoading = false;
     _error = '';
+    // Clear watch data when user logs out
+    _clearWatchData();
     notifyListeners();
+  }
+
+  // Clear watch data (when user has no gensets or logs out)
+  void _clearWatchData() {
+    print('📱 Clearing watch data - no gensets available');
+    // We don't send anything to watch when clearing - it will keep whatever it had
+    // or be empty if account never had gensets
+  }
+
+  // Send genset data to watch
+  void _sendDataToWatch() {
+    if (_gensets.isNotEmpty) {
+      // Convert genset data to the format expected by the watch
+      final gensetArray = _gensets.map((genset) => {
+        'id': genset.id,
+        'gsname': genset.gsname,
+        'status_name': genset.statusName,
+        'totaltime': genset.totaltime ?? '',
+        'daytime': genset.daytime ?? '',
+        'alarm_num': genset.alarmNum ?? 0,
+        'isOnline': genset.statusName.toLowerCase().contains('running') ||
+                   genset.statusName.toLowerCase().contains('online'),
+        'longitude': genset.longitude,
+        'latitude': genset.latitude,
+      }).toList();
+
+      // Send the full array of genset data to watch
+      WatchService.instance.sendGensetDataToWatchBulk(gensetArray);
+
+      print('📱 Sent ${gensetArray.length} gensets to watch');
+    } else {
+      // Clear watch data when no gensets
+      WatchService.instance.sendGensetDataToWatchBulk([]);
+      print('📱 Cleared watch data - no gensets available');
+    }
+  }
+
+  // Update widget with current genset data
+  void _updateWidgetData() {
+    if (_gensets.isNotEmpty) {
+      final firstGenset = _gensets.first;
+
+      // Get structured data for widget
+      final widgetData = _getStructuredGensetDataForWatch();
+
+      WatchService.instance.updateWidgetData(
+        gensetName: firstGenset.gsname ?? 'Generator 1',
+        status: firstGenset.statusName,
+        power: firstGenset.power,
+        fuelLevel: '78%', // This would come from API in real implementation
+        runtime: firstGenset.totaltime ?? '0h',
+        nextMaintenance: '2024-02-15', // This would come from API
+        location: firstGenset.location ?? 'Main Building',
+      );
+
+      print('📱 Updated widget with genset data');
+    } else {
+      // Send empty data to clear widget
+      WatchService.instance.updateWidgetData(
+        gensetName: 'No Gensets',
+        status: 'Offline',
+        power: '0 kW',
+        fuelLevel: '--',
+        runtime: '0h',
+        location: 'Unknown',
+      );
+      print('📱 Cleared widget data - no gensets available');
+    }
+  }
+
+  // Get structured genset data for watch display
+  Map<String, String> _getStructuredGensetDataForWatch() {
+    if (_gensets.isEmpty) {
+      return {
+        'status': 'No gensets',
+        'power': '0 kVA',
+        'location': 'N/A',
+        'maintenanceStatus': 'N/A',
+      };
+    }
+
+    final totalGensets = _gensets.length;
+    final runningGensets = runningGensetsCount;
+    final firstGenset = _gensets.first;
+
+    // Determine overall status
+    String overallStatus = _gensets.isEmpty ? 'No data' :
+                         runningGensets > 0 ? 'Running (${runningGensets}/${totalGensets})' :
+                         _gensets.length > 0 ? 'Ready' :
+                         'Standby';
+
+    // Calculate total power of running gensets
+    double totalPower = 0.0;
+    for (var genset in _gensets) {
+      if (genset.status.toLowerCase().contains('running') ||
+          genset.status.toLowerCase().contains('online') ||
+          genset.status.toLowerCase().contains('active')) {
+        // Extract numeric value from power string (e.g., "15.5 kVA" -> 15.5)
+        final powerMatch = RegExp(r'(\d+(?:\.\d+)?)').firstMatch(genset.power);
+        if (powerMatch != null) {
+          final powerValue = double.tryParse(powerMatch.group(1) ?? '0') ?? 0.0;
+          totalPower += powerValue;
+        }
+      }
+    }
+
+    String totalPowerString = totalPower > 0 ? '${totalPower.toStringAsFixed(1)} kVA' : '-- kVA';
+
+    // Get maintenance status
+    String maintenanceMsg = gensetsWithMaintenanceIssues.isNotEmpty
+        ? '${gensetsWithMaintenanceIssues.length} due'
+        : 'All OK';
+
+    return {
+      'status': overallStatus,
+      'power': totalPowerString,
+      'location': firstGenset.location ?? 'Main Building',
+      'maintenanceStatus': maintenanceMsg,
+    };
   }
 }

@@ -124,8 +124,8 @@ class _UnauthenticatedHomepageState extends State<UnauthenticatedHomepage> with 
                       Row(
                         children: [
                           Container(
-                            width: 80,
-                            height: 80,
+                            width: 90,
+                            height: 90,
                             decoration: const BoxDecoration(
                               color: Colors.white,
                               shape: BoxShape.circle,
@@ -175,11 +175,11 @@ class _UnauthenticatedHomepageState extends State<UnauthenticatedHomepage> with 
                         width: double.infinity,
                         height: 200,
                         decoration: BoxDecoration(
-                          color: Colors.black,
+                          color: const Color(0xFF1E3A8A).withOpacity(0.8),
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
+                              color: const Color(0xFF1E3A8A).withOpacity(0.4),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),

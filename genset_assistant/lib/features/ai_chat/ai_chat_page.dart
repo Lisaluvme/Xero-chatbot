@@ -288,9 +288,6 @@ class _AiChatPageState extends State<AiChatPage> with WidgetsBindingObserver {
       _addMessage(userMessage, true);
       _controller.clear();
 
-      // Show global chat shortcut on all pages after first message
-      main_app.HomePage.showChatShortcut();
-
       // Auto-detect language from user message
       String detectedLanguage = _detectLanguage(userMessage);
       if (detectedLanguage != _currentLanguage) {

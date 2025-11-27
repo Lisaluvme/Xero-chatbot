@@ -113,10 +113,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
         foregroundColor: Colors.white,
         elevation: 2,
         shadowColor: const Color(0xFF1E3A8A).withOpacity(0.3),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
       ),
       body: Container(
         decoration: const BoxDecoration(

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>INIntentDefinitions</key>
+    <array>
+        <dict>
+            <key>INIntentCategory</key>
+            <string>information</string>
+            <key>INIntentDescription</key>
+            <string>Configuration for the Genset Widget</string>
+            <key>INIntentDescriptionID</key>
+            <string>widgetConfig</string>
+            <key>INIntentParameters</key>
+            <array>
+                <dict>
+                    <key>INIntentParameterConfigurable</key>
+                    <true/>
+                    <key>INIntentParameterDisplayName</key>
+                    <string>Show Fuel Level</string>
+                    <key>INIntentParameterDisplayNameID</key>
+                    <string>showFuel</string>
+                    <key>INIntentParameterDisplayPriority</key>
+                    <integer>1</integer>
+                    <key>INIntentParameterName</key>
+                    <string>showFuelLevel</string>
+                    <key>INIntentParameterSupportsDynamicEnumeration</key>
+                    <false/>
+                    <key>INIntentParameterSupportsResolution</key>
+                    <false/>
+                    <key>INIntentParameterType</key>
+                    <string>Boolean</string>
+                </dict>
+                <dict>
+                    <key>INIntentParameterConfigurable</key>
+                    <true/>
+                    <key>INIntentParameterDisplayName</key>
+                    <string>Auto-refresh interval</string>
+                    <key>INIntentParameterDisplayNameID</key>
+                    <string>refreshInterval</string>
+                    <key>INIntentParameterDisplayPriority</key>
+                    <integer>2</integer>
+                    <key>INIntentParameterName</key>
+                    <string>refreshInterval</string>
+                    <key>INIntentParameterSupportsDynamicEnumeration</key>
+                    <false/>
+                    <key>INIntentParameterSupportsResolution</key>
+                    <false/>
+                    <key>INIntentParameterType</key>
+                    <string>Integer</string>
+                </dict>
+            </array>
+            <key>INIntentResponseCodes</key>
+            <array/>
+            <key>INIntentSupportedEntities</key>
+            <array/>
+            <key>INIntentSystemIconName</key>
+            <string>gauge.badge.plus</string>
+            <key>INIntentTitle</key>
+            <string>Genset Widget Configuration</string>
+            <key>INIntentName</key>
+            <string>ConfigurationIntent</string>
+            <key>INIntentTransferable</key>
+            <false/>
+            <key>INIntentType</key>
+            <string>Custom</string>
+            <key>INIntentVerb</key>
+            <string>Configure</string>
+        </dict>
+    </array>
+</dict>
+</plist>

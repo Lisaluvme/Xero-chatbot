@@ -168,16 +168,49 @@ class BackendService {
         print('✅ Successfully fetched data from SmartGen API');
 
         // Parse the SmartGen response format: data.list contains the gensets array
-        if (data['data'] != null && data['data']['list'] != null && data['data']['list'] is List) {
-          final gensets = (data['data']['list'] as List).map((item) => Genset.fromSmartGenJson(item)).toList();
-          print('📊 Parsed ${gensets.length} gensets from SmartGen API');
+        try {
+          if (data['data'] != null && data['data'] is Map) {
+            final dataMap = data['data'] as Map;
+            if (dataMap['list'] != null && dataMap['list'] is List) {
+              final list = dataMap['list'] as List;
 
-          // Cache the data
-          await _cacheGensets(gensets);
+              final gensets = list.map((item) {
+                try {
+                  if (item is Map<String, dynamic>) {
+                    return Genset.fromSmartGenJson(item);
+                  } else {
+                    print('⚠️ Skipping invalid genset item: ${item.runtimeType}');
+                    return null;
+                  }
+                } catch (e) {
+                  print('⚠️ Error parsing genset item: $e');
+                  return null;
+                }
+              }).where((genset) => genset != null).cast<Genset>().toList();
 
-          return gensets;
-        } else {
-          throw Exception('Invalid SmartGen response format: Expected data.list array');
+              print('📊 Successfully parsed ${gensets.length} gensets from SmartGen API (${list.length - gensets.length} skipped)');
+
+              // Cache the data
+              await _cacheGensets(gensets);
+
+              return gensets;
+            }
+          }
+
+          // Handle unexpected response format
+          throw Exception('Invalid SmartGen response format: Expected structure {data: {list: Array}}');
+
+        } catch (parseError) {
+          print('❌ JSON parsing error: $parseError');
+
+          // Log response structure for debugging
+          try {
+            print('📄 Response structure (first 500 chars): ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}');
+          } catch (e) {
+            print('❌ Error logging response: $e');
+          }
+
+          throw Exception('Failed to parse SmartGen API response: $parseError');
         }
       } else {
         print('❌ SmartGen API request failed with status ${response.statusCode}');
@@ -659,6 +692,155 @@ class BackendService {
   /// Gets current backend URL for debugging purposes
   static Future<String> getCurrentBackendUrl() async {
     return await getBackendUrl();
+  }
+
+  /// Submits a quotation request to the backend server
+  static Future<bool> submitQuotation(Map<String, dynamic> quotationData) async {
+    try {
+      print('🔄 Submitting quotation request...');
+
+      final backendUrl = await getBackendUrl();
+      final endpointUrl = '$backendUrl/quotation-requests';
+
+      // Get Firebase auth token for authentication
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+
+      // Add timestamp
+      quotationData['timestamp'] = DateTime.now().toIso8601String();
+      quotationData['userId'] = user?.uid;
+
+      final response = await http.post(
+        Uri.parse(endpointUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (idToken != null) 'Authorization': 'Bearer $idToken',
+        },
+        body: jsonEncode(quotationData),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('✅ Successfully submitted quotation request');
+        return true;
+      } else {
+        print('❌ Failed to submit quotation: ${response.statusCode} - ${response.body}');
+        throw _getErrorFromStatusCode(response.statusCode, response.body);
+      }
+    } on SocketException catch (e) {
+      throw Exception('Network connection failed. Please check:\n'
+          '• Is the backend server running?\n'
+          '• Is your device connected to the same network?\n'
+          '• Is the backend URL correct? (${await getBackendUrl()})\n'
+          'Error: ${e.message}');
+    } on http.ClientException catch (e) {
+      throw Exception('HTTP client error. Please check your network connection.\nError: $e');
+    } catch (e) {
+      if (e is Exception && e.toString().contains('BackendService')) {
+        rethrow; // Re-throw our custom exceptions
+      }
+      throw Exception('Unexpected error occurred while submitting quotation.\nError: $e');
+    }
+  }
+
+  /// Sends WhatsApp message via backend (stays in app)
+  static Future<bool> sendWhatsAppMessage(Map<String, dynamic> quotationData) async {
+    try {
+      print('📱 Sending WhatsApp message via backend...');
+
+      final backendUrl = await getBackendUrl();
+      final endpointUrl = '$backendUrl/send-whatsapp';
+
+      // Get Firebase auth token for authentication
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+
+      // Prepare message data with phone number
+      final messageData = {
+        ...quotationData,
+        'companyPhone': '60129869816', // WhatsApp number
+        'messageType': 'whatsapp',
+        'timestamp': DateTime.now().toIso8601String(),
+        'userId': user?.uid,
+      };
+
+      final response = await http.post(
+        Uri.parse(endpointUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (idToken != null) 'Authorization': 'Bearer $idToken',
+        },
+        body: jsonEncode(messageData),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('✅ WhatsApp message sent via backend');
+        return true;
+      } else {
+        print('❌ Failed to send WhatsApp: ${response.statusCode} - ${response.body}');
+        throw _getErrorFromStatusCode(response.statusCode, response.body);
+      }
+    } on SocketException catch (e) {
+      throw Exception('Network connection failed. Please check your internet connection.\nError: ${e.message}');
+    } on http.ClientException catch (e) {
+      throw Exception('HTTP client error. Please check your network connection.\nError: $e');
+    } catch (e) {
+      if (e is Exception && e.toString().contains('BackendService')) {
+        rethrow;
+      }
+      throw Exception('Failed to send WhatsApp message. Please try again.\nError: $e');
+    }
+  }
+
+  /// Sends email message via backend (stays in app)
+  static Future<bool> sendEmailMessage(Map<String, dynamic> quotationData) async {
+    try {
+      print('📧 Sending email message via backend...');
+
+      final backendUrl = await getBackendUrl();
+      final endpointUrl = '$backendUrl/send-email';
+
+      // Get Firebase auth token for authentication
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+
+      // Prepare message data with email
+      final messageData = {
+        ...quotationData,
+        'companyEmail': 'genset@genset.com.my', // Email address
+        'messageType': 'email',
+        'timestamp': DateTime.now().toIso8601String(),
+        'userId': user?.uid,
+      };
+
+      final response = await http.post(
+        Uri.parse(endpointUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          if (idToken != null) 'Authorization': 'Bearer $idToken',
+        },
+        body: jsonEncode(messageData),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('✅ Email message sent via backend');
+        return true;
+      } else {
+        print('❌ Failed to send email: ${response.statusCode} - ${response.body}');
+        throw _getErrorFromStatusCode(response.statusCode, response.body);
+      }
+    } on SocketException catch (e) {
+      throw Exception('Network connection failed. Please check your internet connection.\nError: ${e.message}');
+    } on http.ClientException catch (e) {
+      throw Exception('HTTP client error. Please check your network connection.\nError: $e');
+    } catch (e) {
+      if (e is Exception && e.toString().contains('BackendService')) {
+        rethrow;
+      }
+      throw Exception('Failed to send email message. Please try again.\nError: $e');
+    }
   }
 
   /// Checks if the backend server is reachable

@@ -12,7 +12,7 @@ class _ContactPageState extends State<ContactPage> {
   // Contact information based on policy
   static const Map<String, Map<String, String>> _contactInfo = {
     'default': {
-      'phone': '+6012-968 9816',
+      'phone': '+60129689816',
       'email': 'genset@genset.com.my',
       'note': 'For general inquiries or normal cases, please provide the company contact details.'
     },
@@ -25,7 +25,6 @@ class _ContactPageState extends State<ContactPage> {
 
   // Current contact type being displayed
   String _currentContactType = 'default';
-  bool _showContactOptions = false;
 
   @override
   void initState() {
@@ -42,7 +41,6 @@ class _ContactPageState extends State<ContactPage> {
     // 4. Context from previous interactions
     setState(() {
       _currentContactType = 'default';
-      _showContactOptions = true;
     });
   }
 
@@ -58,14 +56,6 @@ class _ContactPageState extends State<ContactPage> {
         return AlertDialog(
           title: const Text('Contact Information Updated'),
           content: Text('You are now connected to ${_currentContact['note']}\n\nPhone: ${_currentContact['phone']}\nEmail: ${_currentContact['email']}'),
-          actions: [
-            TextButton(
-              child: const Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
         );
       },
     );
@@ -78,351 +68,189 @@ class _ContactPageState extends State<ContactPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      appBar: AppBar(
+        title: const Text('Contact Support'),
+        backgroundColor: const Color(0xFF1E3A8A),
+      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF1E3A8A), Color(0xFF14B8A6)],
+            colors: [Color(0xFFF8FAFC), Color(0xFFE2E8F0)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header Section
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF1E3A8A), Color(0xFF14B8A6)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.support_agent,
-                              color: Theme.of(context).colorScheme.onPrimary,
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Contact Support',
-                                  style: TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.onBackground,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Get in touch with our expert support team',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Theme.of(context).colorScheme.onSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Section
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1E3A8A), Color(0xFF14B8A6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
                 ),
-
-                const SizedBox(height: 30),
-
-                // Contact Cards
-                _buildBeautifulContactCard(
-                  context,
-                  'WhatsApp Support',
-                  'Chat with our technical support team instantly',
-                  Icons.chat_bubble_rounded,
-                  const Color(0xFF25D366),
-                  _launchWhatsApp,
-                  'Available 24/7 for quick queries',
-                ),
-                const SizedBox(height: 16),
-
-                _buildBeautifulContactCard(
-                  context,
-                  'Emergency Hotline',
-                  'For urgent generator issues and breakdowns',
-                  Icons.emergency_rounded,
-                  const Color(0xFFE53E3E),
-                  _launchPhone,
-                  '24/7 Emergency Support',
-                ),
-                const SizedBox(height: 16),
-
-                _buildBeautifulContactCard(
-                  context,
-                  'Email Support',
-                  'Send detailed queries and documentation',
-                  Icons.email_rounded,
-                  const Color(0xFF3182CE),
-                  _launchEmail,
-                  'Response within 24 hours',
-                ),
-                const SizedBox(height: 16),
-
-                _buildBeautifulContactCard(
-                  context,
-                  'Service Center',
-                  'Find nearest authorized service location',
-                  Icons.location_on_rounded,
-                  const Color(0xFFDD6B20),
-                  _launchMaps,
-                  'Book appointments online',
-                ),
-
-                const SizedBox(height: 30),
-
-                // Operating Hours Section
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.access_time_rounded,
-                              color: Theme.of(context).colorScheme.primary,
-                              size: 20,
-                            ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'Operating Hours',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTimeRow(Icons.work, 'Monday - Friday', '9:00 AM - 6:00 PM'),
-                      const SizedBox(height: 8),
-                      _buildTimeRow(Icons.weekend, 'Saturday', '9:00 AM - 1:00 PM'),
-                      const SizedBox(height: 8),
-                      _buildTimeRow(Icons.emergency, 'Sunday', 'Emergency calls only'),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE53E3E).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xFFE53E3E).withOpacity(0.3),
-                            width: 1,
+                          child: const Icon(
+                            Icons.support_agent,
+                            color: Colors.white,
+                            size: 28,
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.emergency_rounded,
-                              color: Color(0xFFE53E3E),
-                              size: 20,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            'Contact Support We\'re here to help with your generator needs only.',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 14,
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: const [
-                                  Text(
-                                    'Emergency Support Available 24/7',
-                                    style: TextStyle(
-                                      color: Color(0xFFE53E3E),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Critical issues and breakdowns',
-                                    style: TextStyle(
-                                      color: Color(0xFFB91C1C),
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ),
+              ),
 
-                const SizedBox(height: 30),
+              const SizedBox(height: 30),
 
-                // Quick Actions Section
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+              // Contact Methods
+              _buildBeautifulContactCard(
+                context,
+                'Call Us',
+                'Speak directly with our support team',
+                Icons.phone,
+                const Color(0xFF059669),
+                _launchPhone,
+                _currentContact['phone']!,
+              ),
+
+              const SizedBox(height: 16),
+
+              _buildBeautifulContactCard(
+                context,
+                'WhatsApp',
+                'Chat with us on WhatsApp for quick assistance',
+                Icons.chat,
+                const Color(0xFF25D366),
+                _launchWhatsApp,
+                'Available 24/7',
+              ),
+
+              const SizedBox(height: 16),
+
+              _buildBeautifulContactCard(
+                context,
+                'Email Support',
+                'Send us a detailed message about your issue',
+                Icons.email_outlined,
+                const Color(0xFF1E3A8A),
+                _launchEmail,
+                _currentContact['email']!,
+              ),
+
+              const SizedBox(height: 16),
+
+              _buildBeautifulContactCard(
+                context,
+                'Feedback',
+                'Share your thoughts and suggestions',
+                Icons.feedback_outlined,
+                const Color(0xFFF59E0B),
+                _launchFeedbackEmail,
+                'Help improve our service',
+              ),
+
+              const SizedBox(height: 30),
+
+              // Additional Info Card
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Operating Hours',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E3A8A),
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTimeRow(Icons.access_time, 'Monday - Friday', '9:00 AM - 6:00 PM'),
+                    const SizedBox(height: 8),
+                    _buildTimeRow(Icons.weekend, 'Saturday', '9:00 AM - 2:00 PM'),
+                    const SizedBox(height: 8),
+                    _buildTimeRow(Icons.brightness_2, 'Sunday', 'Emergency Only'),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF3C7),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.3)),
+                      ),
+                      child: Row(
                         children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.flash_on_rounded,
-                              color: Theme.of(context).colorScheme.primary,
-                              size: 20,
-                            ),
+                          const Icon(
+                            Icons.info_outline,
+                            color: Color(0xFFF59E0B),
+                            size: 20,
                           ),
                           const SizedBox(width: 12),
-                          const Text(
-                            'Quick Actions',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
                           Expanded(
-                            child: Container(
-                              height: 56,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF25D366), Color(0xFF128C7E)],
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF25D366).withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: ElevatedButton.icon(
-                                onPressed: _launchWhatsApp,
-                                icon: const Icon(Icons.chat_bubble_rounded, color: Colors.white),
-                                label: const Text(
-                                  'Start Chat',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Container(
-                              height: 56,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFFE53E3E), Color(0xFFC53030)],
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFFE53E3E).withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: ElevatedButton.icon(
-                                onPressed: _launchPhone,
-                                icon: const Icon(Icons.phone_rounded, color: Colors.white),
-                                label: const Text(
-                                  'Call Now',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
+                            child: Text(
+                              _currentContact['note']!,
+                              style: const TextStyle(
+                                color: Color(0xFF92400E),
+                                fontSize: 12,
+                                height: 1.4,
                               ),
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-
-                const SizedBox(height: 20),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -608,6 +436,20 @@ class _ContactPageState extends State<ContactPage> {
     }
   }
 
+  void _launchFeedbackEmail() async {
+    final email = _currentContact['email']!;
+    const subject = 'Genset Assistant App Feedback';
+    const body = 'Please share your feedback about the app:';
+    final url =
+        'mailto:$email?subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(body)}';
+
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    } else {
+      _showErrorDialog('Could not launch email client');
+    }
+  }
+
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
@@ -615,14 +457,6 @@ class _ContactPageState extends State<ContactPage> {
         return AlertDialog(
           title: const Text('Error'),
           content: Text(message),
-          actions: [
-            TextButton(
-              child: const Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
         );
       },
     );

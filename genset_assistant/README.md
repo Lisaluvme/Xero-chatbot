@@ -1,6 +1,6 @@
 # genset_assistant
 
-A Flutter application to assist users in learning about, maintaining, and troubleshooting generators.
+A new Flutter project.
 
 ## Getting Started
 

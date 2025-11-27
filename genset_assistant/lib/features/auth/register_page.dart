@@ -62,12 +62,32 @@ class _RegisterPageState extends State<RegisterPage> {
 
     setState(() => _isLoading = true);
     try {
+      print('🔐 Creating user account with email: $cleanEmail');
+
       // Create user with Firebase Auth
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: cleanEmail,
         password: cleanPassword,
       );
-      // Navigation will be handled by StreamBuilder in main.dart
+
+      print('✅ User account created successfully: ${userCredential.user?.email}');
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Small delay to let Firebase auth state settle, then return to root
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          // Clean the navigation stack completely - return to root where StreamBuilder controls navigation
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+      }
     } catch (e) {
       if (mounted) {
         String errorMessage = 'Registration failed';
@@ -99,27 +119,33 @@ class _RegisterPageState extends State<RegisterPage> {
       backgroundColor: const Color(0xFF1A1A1A),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 60),
+          padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width > 600 ? 48.0 : 24.0),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(height: MediaQuery.of(context).size.width > 600 ? 80 : 60),
               // App Logo/Icon
               Container(
                 width: 80,
                 height: 80,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1E3A8A), Color(0xFF14B8A6)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.flash_on,
-                  size: 40,
-                  color: Colors.white,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Image.asset(
+                    'assets/Genset App Logo.png',
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.flash_on,
+                      color: Color(0xFF1E3A8A),
+                      size: 32,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -300,7 +326,9 @@ class _RegisterPageState extends State<RegisterPage> {
                 ],
               ),
               const SizedBox(height: 20),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

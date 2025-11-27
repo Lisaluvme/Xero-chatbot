@@ -15,30 +15,45 @@ class AirtableService {
   static Future<CustomerRecord?> getCustomerByEmail(String email) async {
     try {
       final cleanEmail = email.trim();
-      final filterFormula = '{Email}="$cleanEmail"'; // Use capital E as shown in logs
-      final encodedFormula = Uri.encodeComponent(filterFormula);
-      final url = '$_baseUrl?filterByFormula=$encodedFormula';
 
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Authorization': 'Bearer $_apiKey',
-          'Content-Type': 'application/json',
-        },
-      );
+      // Try different possible field names that might be used in Airtable
+      final possibleFieldNames = ['Email', 'email', 'Email Address', 'email_address'];
+      CustomerRecord? result;
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final records = data['records'] as List?;
+      for (final fieldName in possibleFieldNames) {
+        final filterFormula = '{$fieldName}="$cleanEmail"';
+        final encodedFormula = Uri.encodeComponent(filterFormula);
+        final url = '$_baseUrl?filterByFormula=$encodedFormula';
 
-        if (records != null && records.isNotEmpty) {
-          return CustomerRecord.fromJson(records.first);
-        } else {
-          print('❌ No token found for email: $cleanEmail');
-          return null;
+        final response = await http.get(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'Bearer $_apiKey',
+            'Content-Type': 'application/json',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          final records = data['records'] as List?;
+
+          if (records != null && records.isNotEmpty) {
+            print('✅ Found customer record using field name: $fieldName');
+            result = CustomerRecord.fromJson(records.first);
+            break; // Found it, stop trying other field names
+          }
+        } else if (response.statusCode != 422) {
+          // If it's not a 422 (invalid formula), throw the error
+          throw Exception('Failed to query Airtable: ${response.statusCode} - ${response.body}');
         }
+        // If 422, continue to next field name
+      }
+
+      if (result != null) {
+        return result;
       } else {
-        throw Exception('Failed to query Airtable: ${response.statusCode} - ${response.body}');
+        print('❌ No token found for email: $cleanEmail (tried all field name variations)');
+        return null;
       }
     } catch (e) {
       print('🔥 Airtable query error: $e');
@@ -177,6 +192,36 @@ class AirtableService {
     } catch (e) {
       print('🔥 Error setting utokens for user: $e');
       throw Exception('Failed to set utokens: $e');
+    }
+  }
+
+  /// 🗑️ 删除用户记录
+  static Future<void> deleteCustomer(String email) async {
+    try {
+      // 首先获取用户记录
+      final customer = await getCustomerByEmail(email);
+      if (customer == null) {
+        print('⚠️ User not found in Airtable for deletion: $email');
+        return; // Not an error, user might not have Airtable record
+      }
+
+      // 删除记录
+      final deleteUrl = '$_baseUrl/${customer.id}';
+      final response = await http.delete(
+        Uri.parse(deleteUrl),
+        headers: {
+          'Authorization': 'Bearer $_apiKey',
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        print('✅ Successfully deleted Airtable record for user: $email');
+      } else {
+        throw Exception('Failed to delete from Airtable: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('🔥 Error deleting from Airtable: $e');
+      throw Exception('Failed to delete user data: $e');
     }
   }
 }

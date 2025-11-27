@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>INIntentDefinitions</key>
+    <array>
+        <dict>
+            <key>INIntentCategory</key>
+            <string>information</string>
+            <key>INIntentDescription</key>
+            <string>Configuration for Genset Watch Widget</string>
+            <key>INIntentDescriptionID</key>
+            <string>watchWidgetConfig</string>
+            <key>INIntentParameters</key>
+            <array>
+                <dict>
+                    <key>INIntentParameterConfigurable</key>
+                    <true/>
+                    <key>INIntentParameterDisplayName</key>
+                    <string>Show Runtime</string>
+                    <key>INIntentParameterDisplayNameID</key>
+                    <string>showRuntime</string>
+                    <key>INIntentParameterDisplayPriority</key>
+                    <integer>1</integer>
+                    <key>INIntentParameterName</key>
+                    <string>showRuntimeData</string>
+                    <key>INIntentParameterSupportsDynamicEnumeration</key>
+                    <false/>
+                    <key>INIntentParameterSupportsResolution</key>
+                    <false/>
+                    <key>INIntentParameterType</key>
+                    <string>Boolean</string>
+                </dict>
+            </array>
+            <key>INIntentResponseCodes</key>
+            <array/>
+            <key>INIntentSupportedEntities</key>
+            <array/>
+            <key>INIntentSystemIconName</key>
+            <string>gauge.badge.plus</string>
+            <key>INIntentTitle</key>
+            <string>Genset Watch Widget Config</string>
+            <key>INIntentName</key>
+            <string>ConfigurationIntent</string>
+            <key>INIntentTransferable</key>
+            <false/>
+            <key>INIntentType</key>
+            <string>Custom</string>
+            <key>INIntentVerb</key>
+            <string>Configure</string>
+        </dict>
+    </array>
+</dict>
+</plist>

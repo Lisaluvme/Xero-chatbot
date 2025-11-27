@@ -9,6 +9,8 @@ class Genset {
   final String? daytime; // Maps to "daytime"
   final String? token; // Maps to "Token"
   final String? source; // Maps to "_source"
+  final String? gsaddress; // Maps to "gsaddress"
+  final dynamic alarmNum; // Maps to "alarm_num" - dynamic to handle both int and string
 
   // Backward compatibility fields
   String get name => gsname;
@@ -46,6 +48,8 @@ class Genset {
     this.daytime,
     this.token,
     this.source,
+    this.gsaddress,
+    this.alarmNum,
   });
 
   factory Genset.fromJson(Map<String, dynamic> json) {
@@ -61,6 +65,8 @@ class Genset {
       daytime: json['daytime']?.toString(),
       token: json['Token']?.toString(),
       source: json['_source']?.toString(),
+      gsaddress: json['gsaddress']?.toString(),
+      alarmNum: json['alarm_num'],
     );
   }
 
@@ -78,6 +84,8 @@ class Genset {
       daytime: json['daytime']?.toString() ?? '0h0min', // Correct field name
       token: json['token']?.toString() ?? '',
       source: 'SmartGen API',
+      gsaddress: json['gsaddress']?.toString() ?? '',
+      alarmNum: json['alarm_num'] ?? 0,
     );
   }
 
@@ -110,6 +118,7 @@ class Genset {
       'daytime': daytime,
       'Database Link': databaseLink,
       'Token': token,
+      'gsaddress': gsaddress,
     };
   }
 

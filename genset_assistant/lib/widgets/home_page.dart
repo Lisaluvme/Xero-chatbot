@@ -10,7 +10,7 @@ import '../features/maintenance/maintenance_page.dart';
 import '../features/troubleshooting/troubleshooting_page.dart';
 import '../features/service_records/service_records_page.dart';
 import '../features/contact/contact_page.dart';
-import '../features/dashboard/dashboard_page.dart';
+import '../features/live_status/live_status_page.dart';
 import 'news_detail_page.dart';
 import '../features/ai_chat/ai_chat_page.dart';
 import '../features/products/products_page.dart';
@@ -31,7 +31,7 @@ class HomePageWidget extends StatefulWidget {
   State<HomePageWidget> createState() => _HomePageWidgetState();
 }
 
-class _HomePageWidgetState extends State<HomePageWidget> {
+class _HomePageWidgetState extends State<HomePageWidget> with AutomaticKeepAliveClientMixin {
   List<dynamic> posts = [];
   bool isLoading = true;
   String errorMessage = '';
@@ -40,13 +40,15 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   bool popularProductsLoading = true;
   String popularProductsError = '';
   final TextEditingController _chatController = TextEditingController();
-  final List<Map<String, dynamic>> serviceItems = const [
+
+  // Optimized service items as a single constant instead of dynamic list
+  static const List<Map<String, dynamic>> serviceItems = [
     {'icon': Icons.shopping_cart, 'label': 'Buy Genset', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
     {'icon': Icons.book, 'label': 'Instructions', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
     {'icon': Icons.build_circle, 'label': 'Troubleshooting', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
     {'icon': Icons.engineering, 'label': 'Maintenance', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
     {'icon': Icons.cable, 'label': 'My Genset', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
-    {'icon': Icons.chat, 'label': 'Contact Us', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
+    {'icon': Icons.feedback, 'label': 'Feedback', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
     {'icon': Icons.message, 'label': 'WhatsApp', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
     {'icon': Icons.web, 'label': 'Website', 'color': const Color(0xFF1E3A8A), 'gradient': [Color(0xFF1E3A8A), Color(0xFF14B8A6)]},
   ];
@@ -54,16 +56,27 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   @override
   void initState() {
     super.initState();
-    fetchPosts();
-    fetchPopularProducts();
-    // Auto-fetch genset data when home page loads (after login)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final gensetProvider = Provider.of<GensetProvider>(context, listen: false);
-      if (gensetProvider.gensets.isEmpty && !gensetProvider.isLoading) {
-        gensetProvider.fetchGensets();
-      }
-    });
+    // Defer heavy operations to avoid blocking frame builds
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadInitialData());
   }
+
+  /// Optimized initial data loading with post frame callback
+  Future<void> _loadInitialData() async {
+    await Future.wait([
+      fetchPosts(), // Use existing optimized method
+      fetchPopularProducts(), // Use existing optimized method
+    ], eagerError: false);
+
+    // Auto refresh gensets once when user is logged in and on app open
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null && mounted) {
+      final gensetProvider = Provider.of<GensetProvider>(context, listen: false);
+      gensetProvider.refreshGensets(); // Call refresh to get latest data
+    }
+  }
+
+  @override
+  bool get wantKeepAlive => true; // Keep state alive when scrolled off screen
 
   void _openChatbot() {
     Navigator.push(
@@ -184,34 +197,13 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                 title: const Text("Profile"),
                 onTap: () {
                   Navigator.pop(context);
-                  // Navigate to profile page (implement when needed)
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Profile page coming soon")),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ProfilePage()),
                   );
                 },
               ),
-              ListTile(
-                leading: const Icon(Icons.settings, color: Color(0xFF1E3A8A)),
-                title: const Text("Settings"),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Navigate to settings page (implement when needed)
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Settings page coming soon")),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.help, color: Color(0xFF1E3A8A)),
-                title: const Text("Help & Support"),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Navigate to help page (implement when needed)
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Help page coming soon")),
-                  );
-                },
-              ),
+
               const Divider(),
               ListTile(
                 leading: const Icon(Icons.logout, color: Colors.red),
@@ -254,50 +246,50 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   }
 
   void _onServiceItemTap(BuildContext context, int index) {
-    switch (index) {
-      case 0:
+    if (index >= serviceItems.length) return;
+
+    final item = serviceItems[index];
+    final label = item['label'] as String;
+
+    switch (label) {
+      case 'Buy Genset':
         Navigator.push(
           context,
           MaterialPageRoute(
               builder: (context) => const ProductsScreen(initialCategory: 0)),
         );
         break;
-      case 1:
+      case 'Instructions':
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const LearnPage()),
         );
         break;
-      case 2:
+      case 'Troubleshooting':
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const TroubleshootingPage()),
         );
         break;
-      case 3:
+      case 'Maintenance':
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const MaintenancePage()),
         );
         break;
-      case 4:
+      case 'My Genset':
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const DashboardPage()),
+          MaterialPageRoute(builder: (context) => const LiveStatusPage()),
         );
         break;
-      case 5:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const ContactPage()),
-        );
+      case 'Feedback':
+        _launchFeedback();
         break;
-      case 6:
-        // WhatsApp quick action
+      case 'WhatsApp':
         _launchWhatsApp();
         break;
-      case 7:
-        // Website - launch company website
+      case 'Website':
         _launchWebsite();
         break;
     }
@@ -325,6 +317,24 @@ class _HomePageWidgetState extends State<HomePageWidget> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _launchFeedback() async {
+    const email = 'genset@genset.com.my';
+    const subject = 'Genset Assistant App Feedback';
+    const body = 'Please share your feedback about the app:';
+    final url = 'mailto:$email?subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(body)}';
+
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not launch email client'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -408,117 +418,125 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   }
 
   Widget _buildNewsItem(dynamic post) {
-    String title = post['title']['rendered'] ?? 'No Title';
-    String excerpt = post['excerpt']['rendered'] ?? '';
-    excerpt = excerpt.replaceAll(RegExp(r'<[^>]*>'), '').trim();
-    String date = post['date'] ?? '';
-    if (date.isNotEmpty) {
-      date = DateTime.parse(date).toLocal().toString().split(' ')[0];
-    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        String title = post['title']['rendered'] ?? 'No Title';
+        String excerpt = post['excerpt']['rendered'] ?? '';
+        excerpt = excerpt.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+        String date = post['date'] ?? '';
+        if (date.isNotEmpty) {
+          date = DateTime.parse(date).toLocal().toString().split(' ')[0];
+        }
 
-    String imageUrl = '';
-    if (post['_embedded'] != null &&
-        post['_embedded']['wp:featuredmedia'] != null &&
-        post['_embedded']['wp:featuredmedia'].isNotEmpty) {
-      imageUrl = post['_embedded']['wp:featuredmedia'][0]['source_url'] ?? '';
-    }
+        String imageUrl = '';
+        if (post['_embedded'] != null &&
+            post['_embedded']['wp:featuredmedia'] != null &&
+            post['_embedded']['wp:featuredmedia'].isNotEmpty) {
+          imageUrl = post['_embedded']['wp:featuredmedia'][0]['source_url'] ?? '';
+        }
 
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => NewsDetailPage(post: post)),
-        );
-      },
-      child: SizedBox(
-        width: 280,
-        height: 200,
-        child: Container(
-          margin: const EdgeInsets.only(right: 16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2C2C2C),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
+        // Responsive sizing based on screen width
+        double cardWidth = constraints.maxWidth > 600 ? 320 : 280;
+        double imageHeight = constraints.maxWidth > 600 ? 120 : 100;
+
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => NewsDetailPage(post: post)),
+            );
+          },
+          child: SizedBox(
+            width: cardWidth,
+            height: constraints.maxWidth > 600 ? 240 : 200,
+            child: Container(
+              margin: const EdgeInsets.only(right: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2C2C2C),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (imageUrl.isNotEmpty)
-                ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                  ),
-                  child: Image.network(
-                    imageUrl,
-                    height: 100,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                    const SizedBox.shrink(),
-                  ),
-                ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFFFFFFF),
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (imageUrl.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
                       ),
-                      const SizedBox(height: 8),
-                      Expanded(
-                        child: Text(
-                          excerpt,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFFB3B3B3),
-                            height: 1.4,
-                          ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      child: Image.network(
+                        imageUrl,
+                        height: imageHeight,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                        const SizedBox.shrink(),
                       ),
-                      const SizedBox(height: 8),
-                      Row(
+                    ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            date,
+                            title,
                             style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFFB3B3B3),
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFFFFFFF),
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
+                          Expanded(
+                            child: Text(
+                              excerpt,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFFB3B3B3),
+                                height: 1.4,
+                              ),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const Spacer(),
-                          Icon(
-                            Icons.arrow_forward,
-                            size: 16,
-                            color: Theme.of(context).colorScheme.tertiary,
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Text(
+                                date,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFFB3B3B3),
+                                ),
+                              ),
+                              const Spacer(),
+                              Icon(
+                                Icons.arrow_forward,
+                                size: 16,
+                                color: Theme.of(context).colorScheme.tertiary,
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -871,230 +889,23 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     );
   }
 
-  Future<List<Widget>> _buildMirrorGensetSection() async {
-    // Check if user has Airtable tagging using the same service as live status page
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return []; // Not logged in, don't show gensets
-    }
 
-    try {
-      final customerMapping = await CustomerMappingService.fetchCustomerMappingByEmail();
-
-      // Only show gensets if user has valid tokens (tagging)
-      if (customerMapping == null || customerMapping.tokens.isEmpty) {
-        // User doesn't have tagging - show access denied message
-        return [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'My Gensets',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A), // Text Color
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.lock, color: Colors.blue.shade700),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Genset Access Required',
-                              style: TextStyle(
-                                color: Colors.blue.shade700,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Contact support to get access to your gensets. You need to be tagged in our system.',
-                              style: TextStyle(
-                                color: Colors.blue.shade600,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-        ];
-      }
-
-      // User has tagging - show gensets
-      return [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'My Gensets',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A), // Text Color
-                    ),
-                  ),
-                  Consumer<GensetProvider>(
-                    builder: (context, gensetProvider, child) {
-                      return TextButton(
-                        onPressed: () => gensetProvider.refreshGensets(),
-                        child: const Text(
-                          'Refresh',
-                          style: TextStyle(
-                            color: Color(0xFF38BDF8), // Highlight Color
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Consumer<GensetProvider>(
-                builder: (context, gensetProvider, child) {
-                  if (gensetProvider.isLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF2563EB),
-                      ),
-                    );
-                  }
-
-                  if (gensetProvider.hasError) {
-                    return Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.shade200),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.error, color: Colors.red.shade700),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Unable to load genset data',
-                                  style: TextStyle(
-                                    color: Colors.red.shade700,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  gensetProvider.error,
-                                  style: TextStyle(
-                                    color: Colors.red.shade600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => gensetProvider.fetchGensets(),
-                            icon: Icon(Icons.refresh, color: Colors.red.shade700),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  if (gensetProvider.gensets.isEmpty) {
-                    return Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.electrical_services, color: Colors.grey.shade700),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'No gensets assigned to your account.\nContact support to get access to your gensets.',
-                              style: TextStyle(
-                                color: Colors.grey.shade700,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return SizedBox(
-                    height: 200,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: gensetProvider.gensets.length,
-                      itemBuilder: (context, index) {
-                        return _buildGensetItem(gensetProvider.gensets[index]);
-                      },
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-      ];
-    } catch (e) {
-      print('Error checking user permissions: $e');
-      // On error, don't show gensets
-      return [];
-    }
-  }
 
   String _translateStatus(String status) {
     final lowerStatus = status.toLowerCase();
-    if (lowerStatus.contains('离线')) {
+    if (lowerStatus.contains('offline') || lowerStatus.contains('离线')) {
       return 'Offline';
-    } else if (lowerStatus.contains('在线') || lowerStatus.contains('online')) {
+    } else if (lowerStatus.contains('online') || lowerStatus.contains('在线')) {
       return 'Online';
-    } else if (lowerStatus.contains('空闲') || lowerStatus.contains('idle')) {
+    } else if (lowerStatus.contains('idle') || lowerStatus.contains('空闲')) {
       return 'Idle';
-    } else if (lowerStatus.contains('运行') || lowerStatus.contains('running')) {
+    } else if (lowerStatus.contains('running') || lowerStatus.contains('运行')) {
       return 'Running';
-    } else if (lowerStatus.contains('报警') || lowerStatus.contains('alarm')) {
+    } else if (lowerStatus.contains('alarm') || lowerStatus.contains('报警')) {
       return 'Alarm';
-    } else if (lowerStatus.contains('故障') || lowerStatus.contains('error')) {
+    } else if (lowerStatus.contains('error') || lowerStatus.contains('故障')) {
       return 'Error';
-    } else if (lowerStatus.contains('待机') || lowerStatus.contains('standby')) {
+    } else if (lowerStatus.contains('standby') || lowerStatus.contains('待机')) {
       return 'Standby';
     } else {
       return status;
@@ -1121,28 +932,21 @@ class _HomePageWidgetState extends State<HomePageWidget> {
       statusColor = Colors.blue;
     }
 
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const DashboardPage()),
-        );
-      },
-      child: Container(
-        width: 200,
-        height: 180,
-        margin: const EdgeInsets.only(right: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF1E3A8A).withOpacity(0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
+    return Container(
+      width: 200,
+      height: 180,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1E3A8A).withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1265,12 +1069,14 @@ class _HomePageWidgetState extends State<HomePageWidget> {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    final currentUser = FirebaseAuth.instance.currentUser;
+    
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       body: SafeArea(
@@ -1301,175 +1107,257 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Chat input field with send button and user icon on the right
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                    if (currentUser == null)
+                      // Unauthenticated user - show login button
+                      Center(
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Welcome to Genset Assistant',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF14B8A6), Color(0xFF1E3A8A)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(25),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.25),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => const LoginPage()),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Image.asset(
+                                      'assets/Genset App Logo.png',
+                                      width: 24,
+                                      height: 24,
+                                      fit: BoxFit.contain,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Login',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Icon(
+                                      Icons.arrow_forward,
+                                      size: 18,
+                                      color: Colors.white,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      // Authenticated user - show normal chat interface
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(25),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: TextField(
+                                controller: _chatController,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: const InputDecoration(
+                                  hintText: 'Ask about generators, ATS, monitoring...',
+                                  hintStyle: TextStyle(color: Colors.white70),
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                onSubmitted: (value) {
+                                  if (value.trim().isNotEmpty) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => AiChatPage(initialMessage: value.trim()),
+                                      ),
+                                    );
+                                    _chatController.clear();
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(25),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.3),
-                                width: 1,
-                              ),
                             ),
-                            child: TextField(
-                              controller: _chatController,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: const InputDecoration(
-                                hintText: 'Ask about generators, ATS, monitoring...',
-                                hintStyle: TextStyle(color: Colors.white70),
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              onSubmitted: (value) {
-                                if (value.trim().isNotEmpty) {
+                            child: IconButton(
+                              onPressed: () {
+                                if (_chatController.text.trim().isNotEmpty) {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => AiChatPage(initialMessage: value.trim()),
+                                      builder: (context) => AiChatPage(initialMessage: _chatController.text.trim()),
                                     ),
                                   );
                                   _chatController.clear();
+                                } else {
+                                  // Show dropdown chatbot
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (context) => Container(
+                                      height: MediaQuery.of(context).size.height * 0.8,
+                                      decoration: const BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.only(
+                                          topLeft: Radius.circular(20),
+                                          topRight: Radius.circular(20),
+                                        ),
+                                      ),
+                                      child: const AiChatPage(),
+                                    ),
+                                  );
                                 }
                               },
+                              icon: Icon(
+                                _chatController.text.trim().isNotEmpty
+                                    ? Icons.send
+                                    : Icons.chat_bubble_outline,
+                                color: Colors.white,
+                              ),
+                              tooltip: _chatController.text.trim().isNotEmpty
+                                  ? 'Send message'
+                                  : 'Open chatbot',
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                          child: IconButton(
+                          const SizedBox(width: 8),
+                          IconButton(
                             onPressed: () {
-                              if (_chatController.text.trim().isNotEmpty) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => AiChatPage(initialMessage: _chatController.text.trim()),
-                                  ),
-                                );
-                                _chatController.clear();
-                              } else {
-                                // Show dropdown chatbot
-                                showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  backgroundColor: Colors.transparent,
-                                  builder: (context) => Container(
-                                    height: MediaQuery.of(context).size.height * 0.8,
-                                    decoration: const BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.only(
-                                        topLeft: Radius.circular(20),
-                                        topRight: Radius.circular(20),
-                                      ),
-                                    ),
-                                    child: const AiChatPage(),
-                                  ),
-                                );
-                              }
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const ProfilePage()),
+                              );
                             },
-                            icon: Icon(
-                              _chatController.text.trim().isNotEmpty
-                                  ? Icons.send
-                                  : Icons.chat_bubble_outline,
-                              color: Colors.white,
-                            ),
-                            tooltip: _chatController.text.trim().isNotEmpty
-                                ? 'Send message'
-                                : 'Open chatbot',
+                            icon: const Icon(Icons.account_circle, color: Colors.white),
+                            tooltip: 'Profile',
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const ProfilePage()),
-                            );
-                          },
-                          icon: const Icon(Icons.account_circle, color: Colors.white),
-                          tooltip: 'Profile',
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                   ],
                 ),
               ),
 
+              // Services Grid - Responsive for iPad
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  // Responsive grid: 4 columns on phones, 6 on tablets, 8 on large screens
+                  int crossAxisCount = constraints.maxWidth > 1000 ? 8 :
+                                      constraints.maxWidth > 600 ? 6 : 4;
 
-
-              // Services Grid
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate:
-                  const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemCount: serviceItems.length,
-                  itemBuilder: (context, index) {
-                    final item = serviceItems[index];
-                    return GestureDetector(
-                      onTap: () => _onServiceItemTap(context, index),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 55,
-                            height: 55,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: item['gradient'] as List<Color>,
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: (item['color'] as Color).withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              item['icon'],
-                              color: Colors.white,
-                              size: 26,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Flexible(
-                            child: Text(
-                              item['label'],
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: (item['label'] == 'Troubleshooting' || item['label'] == 'Maintenance') ? FontWeight.bold : FontWeight.w600,
-                                color: const Color(0xFF000000), // Pure black color
-                              ),
-                              textAlign: TextAlign.center,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
+                  return Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: constraints.maxWidth > 600 ? 16 : 12,
+                        mainAxisSpacing: constraints.maxWidth > 600 ? 16 : 12,
+                        childAspectRatio: constraints.maxWidth > 600 ? 1.1 : 1.0,
                       ),
-                    );
-                  },
-                ),
+                      itemCount: serviceItems.length,
+                      itemBuilder: (context, index) {
+                        final item = serviceItems[index];
+                        return GestureDetector(
+                          onTap: () => _onServiceItemTap(context, index),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: constraints.maxWidth > 600 ? 65 : 55,
+                                height: constraints.maxWidth > 600 ? 65 : 55,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: item['gradient'] as List<Color>,
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: (item['color'] as Color).withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  item['icon'],
+                                  color: Colors.white,
+                                  size: constraints.maxWidth > 600 ? 30 : 26,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Flexible(
+                                child: Text(
+                                  item['label'],
+                                  style: TextStyle(
+                                    fontSize: constraints.maxWidth > 600 ? 11 : 10,
+                                    fontWeight: (item['label'] == 'Troubleshooting' || item['label'] == 'Maintenance') ? FontWeight.bold : FontWeight.w600,
+                                    color: const Color(0xFF000000), // Pure black color
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
               ),
-
-
 
               // Popular Products Section
               Padding(
@@ -1580,57 +1468,124 @@ class _HomePageWidgetState extends State<HomePageWidget> {
               const SizedBox(height: 24),
 
               // Mirror Gensets Section (only show if user is logged in and no access error)
-              FutureBuilder<List<Widget>>(
-                future: _buildMirrorGensetSection(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
+              if (currentUser != null)
+                Consumer<GensetProvider>(
+                  builder: (context, gensetProvider, child) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'My Gensets',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF0F172A),
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'My Gensets',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () => gensetProvider.refreshGensets(),
+                                child: const Text(
+                                  'Refresh',
+                                  style: TextStyle(
+                                    color: Color(0xFF38BDF8),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          SizedBox(height: 16),
-                          Center(
-                            child: CircularProgressIndicator(
-                              color: Color(0xFF2563EB),
+                          const SizedBox(height: 16),
+                          if (gensetProvider.isLoading)
+                            const Center(
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF2563EB),
+                              ),
+                            )
+                          else if (gensetProvider.hasError)
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.red.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.error, color: Colors.red.shade700),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Unable to load genset data',
+                                          style: TextStyle(
+                                            color: Colors.red,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          gensetProvider.error,
+                                          style: TextStyle(
+                                            color: Colors.red.shade600,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () => gensetProvider.fetchGensets(),
+                                    icon: Icon(Icons.refresh, color: Colors.red.shade700),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else if (gensetProvider.gensets.isEmpty)
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.electrical_services, color: Colors.grey),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'No gensets assigned to your account.\nContact support to get access to your gensets.',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            SizedBox(
+                              height: 200,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: gensetProvider.gensets.length,
+                                itemBuilder: (context, index) =>
+                                  _buildGensetItem(gensetProvider.gensets[index]),
+                              ),
                             ),
-                          ),
-                          SizedBox(height: 24),
                         ],
                       ),
                     );
-                  } else if (snapshot.hasError) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'My Gensets',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                          SizedBox(height: 16),
-                          SizedBox(height: 24),
-                        ],
-                      ),
-                    );
-                  } else {
-                    return Column(children: snapshot.data ?? []);
-                  }
-                },
-              ),
+                  },
+                ),
 
               // Latest News
               Padding(
@@ -1674,7 +1629,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
             ],
           ),
         ),
-    ),
-  );
+      ),
+    );
   }
 }

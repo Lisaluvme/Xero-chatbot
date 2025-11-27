@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/genset_provider.dart';
 import '../../models/genset_model.dart';
 import '../../services/backend_service.dart';
+import '../../widgets/genset_map_widget.dart';
+import 'dart:async';
 
 class LiveStatusPage extends StatefulWidget {
   const LiveStatusPage({super.key});
@@ -13,13 +15,17 @@ class LiveStatusPage extends StatefulWidget {
 }
 
 class _LiveStatusPageState extends State<LiveStatusPage>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _fadeController;
   late AnimationController _scaleController;
+  Timer? _autoRefreshTimer;
+  static const Duration _refreshInterval = Duration(seconds: 30); // Auto-refresh every 30 seconds
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
@@ -31,104 +37,583 @@ class _LiveStatusPageState extends State<LiveStatusPage>
 
     _fadeController.forward();
 
+    // Initial data fetch when page loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<GensetProvider>(context, listen: false).fetchGensets();
+      _fetchGensetsData();
+      _startAutoRefresh();
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _fadeController.dispose();
     _scaleController.dispose();
+    _stopAutoRefresh();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    // Handle app lifecycle changes for auto-refresh
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // App is in foreground, start or resume auto-refresh
+        print('🔄 App resumed - starting auto-refresh');
+        _startAutoRefresh();
+        // Also fetch fresh data when app resumes
+        _fetchGensetsData();
+        break;
+      case AppLifecycleState.paused:
+        // App is in background, pause auto-refresh to save resources
+        print('⏸️ App paused - stopping auto-refresh');
+        _stopAutoRefresh();
+        break;
+      case AppLifecycleState.detached:
+        // App is being destroyed
+        _stopAutoRefresh();
+        break;
+      case AppLifecycleState.inactive:
+        // App is inactive but still visible
+        break;
+      case AppLifecycleState.hidden:
+        // App is hidden (new in Flutter 3.13+)
+        _stopAutoRefresh();
+        break;
+    }
+  }
+
+  void _startAutoRefresh() {
+    _stopAutoRefresh(); // Clear any existing timer
+
+    // Check if user is authenticated before starting auto-refresh
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      print('🔐 No authenticated user - skipping auto-refresh');
+      return;
+    }
+
+    _autoRefreshTimer = Timer.periodic(_refreshInterval, (timer) {
+      print('🔄 Auto-refreshing genset data...');
+      _fetchGensetsData();
+    });
+
+    print('⏰ Auto-refresh started - refreshing every ${_refreshInterval.inSeconds} seconds');
+  }
+
+  void _stopAutoRefresh() {
+    if (_autoRefreshTimer != null) {
+      _autoRefreshTimer!.cancel();
+      _autoRefreshTimer = null;
+      print('⏹️ Auto-refresh stopped');
+    }
+  }
+
+  void _fetchGensetsData() {
+    // Check if user is still authenticated
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      print('🔐 User not authenticated - skipping data fetch');
+      return;
+    }
+
+    // Only fetch if user is authenticated
+    Provider.of<GensetProvider>(context, listen: false).fetchGensets();
+  }
+
   void showGensetDetails(Genset genset) {
-    _scaleController.forward(from: 0.0);
-    showGeneralDialog(
+    showDialog(
       context: context,
       barrierDismissible: true,
-      barrierLabel: "Genset Details",
-      transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return ScaleTransition(
-          scale: Tween<double>(begin: 0.8, end: 1.0).animate(
-            CurvedAnimation(parent: _scaleController, curve: Curves.easeOutCubic),
-          ),
-          child: Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              _getStatusIcon(genset.status),
+              color: _getStatusColor(genset.status),
+              size: 28,
             ),
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: 500,
-                maxHeight: MediaQuery.of(context).size.height * 0.8,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                genset.name,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Status badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(genset.status).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _getStatusColor(genset.status).withOpacity(0.3),
                   ),
-                ],
+                ),
+                child: Text(
+                  _getStatusVisualData(genset.status).label,
+                  style: TextStyle(
+                    color: _getStatusColor(genset.status),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-              child: Column(
+              const SizedBox(height: 16),
+
+              // Basic Information Section
+              _buildSectionHeader('Basic Information'),
+              _buildQuickInfoRow('Generator Name', genset.gsname, Icons.electrical_services),
+              _buildQuickInfoRow('Genset ID', genset.gensetId, Icons.tag),
+              _buildQuickInfoRow('Power Rating', genset.powerRating, Icons.flash_on),
+              _buildQuickInfoRow('Brand', genset.brand, Icons.business),
+              if (genset.gsaddress != null && genset.gsaddress!.isNotEmpty)
+                _buildQuickInfoRow('Address', genset.gsaddress!, Icons.location_on),
+              _buildQuickInfoRow('Category', genset.category, Icons.category),
+              _buildQuickInfoRow('Fuel Type', genset.fuel, Icons.local_gas_station),
+
+              const SizedBox(height: 16),
+
+              // Time Information Section
+              _buildSectionHeader('Running Time'),
+              _buildQuickInfoRow('Total Time', genset.totaltime ?? 'Not available', Icons.schedule),
+              _buildQuickInfoRow('Day Time', genset.daytime ?? 'Not available', Icons.light_mode),
+
+              const SizedBox(height: 16),
+
+              // Location Information Section
+              if (genset.latitude != null && genset.longitude != null) ...[
+                _buildSectionHeader('Location'),
+                _buildQuickInfoRow(
+                  'Coordinates',
+                  'Lat: ${genset.latitude!.toStringAsFixed(6)}\nLng: ${genset.longitude!.toStringAsFixed(6)}',
+                  Icons.location_on
+                ),
+              ],
+
+              // Data Source Section
+              if (genset.source != null && genset.source!.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildSectionHeader('Data Source'),
+                _buildQuickInfoRow('Source', genset.source!, Icons.data_usage),
+              ],
+
+              const SizedBox(height: 16),
+
+              // Alarm section - always shows
+              _buildAlarmSection(genset.alarmNum),
+
+              const SizedBox(height: 16),
+
+              // Action buttons
+              Column(
                 children: [
-                  // Enhanced Header
-                  _buildDetailHeader(genset),
-                  // Content
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Status Badge
-                          _buildStatusBadge(genset.status),
-                          const SizedBox(height: 24),
-
-                          // Basic Information Grid
-                          _buildInfoGrid(genset),
-                          const SizedBox(height: 24),
-
-                          // Specifications Section
-                          if (genset.specifications != null && genset.specifications!.isNotEmpty) ...[
-                            _buildSpecificationsSection(genset.specifications!),
-                            const SizedBox(height: 24),
-                          ],
-
-                          // Maintenance Status
-                          _buildMaintenanceSection(genset.maintenanceStatus),
-                          const SizedBox(height: 24),
-
-                          // Alarm Status
-                          if (genset.specifications != null &&
-                              genset.specifications!['alarmnum'] != null &&
-                              (genset.specifications!['alarmnum'] as num) > 0) ...[
-                            _buildAlarmSection(genset.specifications!['alarmnum']),
-                            const SizedBox(height: 24),
-                          ],
-                        ],
+                  if (genset.latitude != null && genset.longitude != null)
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // Close dialog
+                        _showFullMap(genset); // Open optimized full map
+                      },
+                      icon: const Icon(Icons.map, size: 18),
+                      label: const Text('View Full Map'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        minimumSize: const Size(double.infinity, 48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
-                  ),
+
                 ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _followGensetLocation(Genset genset) {
+    // Navigate to the dedicated map page and center on the genset location
+    if (genset.latitude != null && genset.longitude != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => Scaffold(
+            appBar: AppBar(
+              title: Text('${genset.name} Location'),
+              backgroundColor: const Color(0xFF1E3A8A),
+              foregroundColor: Colors.white,
+            ),
+            body: CenterOnGensetMapWidget(genset: genset),
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Location not available for this generator'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickInfoRow(String label, String value, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.grey.shade600),
+        const SizedBox(width: 8),
+        Text(
+          '$label:',
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              color: Colors.grey.shade700,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSimpleDetailHeader(Genset genset) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            _getStatusColor(genset.status).withOpacity(0.8),
+            _getStatusColor(genset.status),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              _getStatusIcon(genset.status),
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  genset.name.isNotEmpty ? genset.name : "Unknown Genset",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    height: 1.2,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  genset.model ?? 'Model not specified',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 14,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.close, color: Colors.white, size: 24),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.white.withOpacity(0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
           ),
-        );
-      },
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        return FadeTransition(
-          opacity: animation,
-          child: child,
-        );
-      },
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFullMapSection(Genset genset) {
+    if (genset.latitude == null || genset.longitude == null) {
+      return Container(
+        height: 200,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.map_outlined,
+              size: 48,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Location Not Available',
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'This generator does not have location coordinates configured.',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      height: 300,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            GensetMapWidget(
+              genset: genset,
+              height: 300,
+              showFullscreenButton: false,
+              showFollowButton: true,
+            ),
+            Positioned(
+              top: 12,
+              right: 12,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  // Scene the map to the genset's location
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Map centered on Genset location'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.my_location, size: 16),
+                label: const Text('Center'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade600,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  textStyle: const TextStyle(fontSize: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 12,
+              left: 12,
+              right: 12,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.location_on,
+                      size: 16,
+                      color: Colors.blue.shade600,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Lat: ${genset.latitude?.toStringAsFixed(6)}, Lng: ${genset.longitude?.toStringAsFixed(6)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSimpleInfoGrid(Genset genset) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Genset Information",
+          style: TextStyle(
+            color: Colors.grey.shade700,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.flash_on, size: 16, color: Colors.grey.shade600),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Power",
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "${genset.power}",
+                      style: const TextStyle(
+                        color: Color(0xFF0F172A),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.business, size: 16, color: Colors.grey.shade600),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Customer",
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      genset.customer ?? 'N/A',
+                      style: const TextStyle(
+                        color: Color(0xFF0F172A),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -274,6 +759,209 @@ class _LiveStatusPageState extends State<LiveStatusPage>
     );
   }
 
+  Widget _buildMapSection(Genset genset) {
+    if (genset.latitude == null || genset.longitude == null) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.map_outlined, color: Colors.grey.shade700, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  "Location",
+                  style: TextStyle(
+                    color: Colors.grey.shade700,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.location_off,
+                    size: 32,
+                    color: Colors.grey.shade400,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Location Not Available',
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'This generator does not have location coordinates configured.',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade50, Colors.indigo.shade50],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.map, color: Colors.blue.shade700, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                "Location",
+                style: TextStyle(
+                  color: Colors.blue.shade700,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+              const Spacer(),
+
+              const SizedBox(width: 8),
+              // Button to view map in full size
+              ElevatedButton.icon(
+                onPressed: () => _showFullMap(genset),
+                icon: const Icon(Icons.fullscreen, size: 16),
+                label: const Text('View Map'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade600,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  textStyle: const TextStyle(fontSize: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Small map preview
+          Container(
+            height: 120,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.shade300),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: GensetMapWidget(
+                genset: genset,
+                height: 120,
+                showFullscreenButton: false,
+                showFollowButton: true,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Location coordinates
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.8),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.location_on,
+                  size: 14,
+                  color: Colors.blue.shade600,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Coordinates: ${genset.latitude?.toStringAsFixed(6)}, ${genset.longitude?.toStringAsFixed(6)}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFullMap(Genset genset) {
+    if (genset.latitude == null || genset.longitude == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Location not available for this generator'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Navigate to a dedicated map page instead of using Dialog.fullscreen
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: Text('${genset.name} Location'),
+            backgroundColor: const Color(0xFF1E3A8A),
+            foregroundColor: Colors.white,
+          ),
+          body: GensetMapWidget(
+            genset: genset,
+            height: MediaQuery.of(context).size.height,
+            showFullscreenButton: false,
+            showFollowButton: false,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildInfoGrid(Genset genset) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -304,7 +992,6 @@ class _LiveStatusPageState extends State<LiveStatusPage>
             {"Power": genset.power},
             {"Brand": genset.brand},
             {"Model": genset.model},
-            {"Location": genset.location},
             {"Customer": genset.customer ?? 'N/A'},
           ].map((entry) => Container(
             margin: const EdgeInsets.only(bottom: 12),
@@ -525,25 +1212,28 @@ class _LiveStatusPageState extends State<LiveStatusPage>
 
   Widget _buildAlarmSection(dynamic alarmNum) {
     final int alarmCount = alarmNum is int ? alarmNum : int.tryParse(alarmNum.toString()) ?? 0;
+    final bool hasAlarms = alarmCount > 0;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.red.shade50,
+        color: hasAlarms ? Colors.red.shade50 : Colors.green.shade50,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.red.shade200),
+        border: Border.all(
+          color: hasAlarms ? Colors.red.shade200 : Colors.green.shade200,
+        ),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.red.shade100,
+              color: hasAlarms ? Colors.red.shade100 : Colors.green.shade100,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              Icons.error,
-              color: Colors.red.shade600,
+              hasAlarms ? Icons.error : Icons.check_circle,
+              color: hasAlarms ? Colors.red.shade600 : Colors.green.shade600,
               size: 24,
             ),
           ),
@@ -555,16 +1245,18 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                 Text(
                   "Active Alarms",
                   style: TextStyle(
-                    color: Colors.red.shade700,
+                    color: hasAlarms ? Colors.red.shade700 : Colors.green.shade700,
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "$alarmCount alarm${alarmCount != 1 ? 's' : ''} detected - requires immediate attention",
+                  hasAlarms
+                      ? "$alarmCount alarm${alarmCount != 1 ? 's' : ''} detected - requires immediate attention"
+                      : "No alarms",
                   style: TextStyle(
-                    color: Colors.red.shade600,
+                    color: hasAlarms ? Colors.red.shade600 : Colors.green.shade600,
                     fontSize: 14,
                   ),
                 ),
@@ -579,267 +1271,354 @@ class _LiveStatusPageState extends State<LiveStatusPage>
   Widget _buildGensetCard(Genset genset) {
     final statusData = _getStatusVisualData(genset.status);
 
-    return GestureDetector(
-      onTap: () => showGensetDetails(genset),
-      child: AnimatedBuilder(
-        animation: _fadeController,
-        builder: (context, child) {
-          return FadeTransition(
-            opacity: _fadeController,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 0.1),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: _fadeController,
-                curve: Curves.easeOutCubic,
-              )),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: statusData.color.withOpacity(0.15),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header with status and name
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  statusData.color.withOpacity(0.8),
-                                  statusData.color,
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: statusData.color.withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              statusData.icon,
-                              color: Colors.white,
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  genset.name.isNotEmpty ? genset.name : "Unknown Genset",
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF0F172A),
-                                    height: 1.2,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                // Visual status indicator instead of text
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        statusData.color.withOpacity(0.1),
-                                        statusData.color.withOpacity(0.05),
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: statusData.color.withOpacity(0.3),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        statusData.icon,
-                                        color: statusData.color,
-                                        size: 14,
-                                      ),
-                                      if (statusData.showPulse) ...[
-                                        const SizedBox(width: 6),
-                                        Container(
-                                          width: 6,
-                                          height: 6,
-                                          decoration: BoxDecoration(
-                                            color: statusData.color,
-                                            shape: BoxShape.circle,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: statusData.color.withOpacity(0.5),
-                                                blurRadius: 4,
-                                                spreadRadius: 1,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              Icons.arrow_forward_ios,
-                              color: Colors.grey.shade600,
-                              size: 18,
-                            ),
-                          ),
-                        ],
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: 280, // Strict height limit to prevent overflow with all original data
+        minHeight: 180, // Minimum height for proper display
+      ),
+      child: GestureDetector(
+        onTap: () => showGensetDetails(genset),
+        child: AnimatedBuilder(
+          animation: _fadeController,
+          builder: (context, child) {
+            return FadeTransition(
+              opacity: _fadeController,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.1),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(
+                  parent: _fadeController,
+                  curve: Curves.easeOutCubic,
+                )),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: statusData.color.withOpacity(0.08),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
                       ),
-
-                      const SizedBox(height: 20),
-
-                      // Details Grid
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildCardInfo("ID", genset.id, Icons.perm_identity),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildCardInfo("Power", genset.power, Icons.flash_on),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildCardInfo("Customer", _getCustomerName(genset), Icons.person),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildCardInfo("Location", genset.location ?? 'N/A', Icons.location_on),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.02),
+                        blurRadius: 2,
+                        offset: const Offset(0, 1),
                       ),
-
-                      // Maintenance Status
-                      if (genset.maintenanceStatus != null && genset.maintenanceStatus!.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
-                                   genset.maintenanceStatus!.toLowerCase().contains('overdue')
-                                ? Colors.blue.shade50
-                                : Colors.green.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
-                                     genset.maintenanceStatus!.toLowerCase().contains('overdue')
-                                  ? Colors.blue.shade200
-                                  : Colors.green.shade200,
-                            ),
-                          ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Compact header row
+                        SizedBox(
+                          height: 40,
                           child: Row(
                             children: [
-                              Icon(
-                                genset.maintenanceStatus!.toLowerCase().contains('due') ||
-                                genset.maintenanceStatus!.toLowerCase().contains('overdue')
-                                    ? Icons.warning
-                                    : Icons.check_circle,
-                                color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
-                                       genset.maintenanceStatus!.toLowerCase().contains('overdue')
-                                    ? Colors.blue.shade600
-                                    : Colors.green.shade600,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  genset.maintenanceStatus!,
-                                  style: TextStyle(
-                                    color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
-                                           genset.maintenanceStatus!.toLowerCase().contains('overdue')
-                                        ? Colors.blue.shade700
-                                        : Colors.green.shade700,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
+                              Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      statusData.color.withOpacity(0.8),
+                                      statusData.color,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
                                   ),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
+                                child: Icon(
+                                  statusData.icon,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    Text(
+                                      genset.name.isNotEmpty ? genset.name : "Unknown Genset",
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF0F172A),
+                                        height: 1.1,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Container(
+                                      width: 60,
+                                      height: 16,
+                                      decoration: BoxDecoration(
+                                        color: statusData.color.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                          color: statusData.color.withOpacity(0.2),
+                                        ),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        statusData.label,
+                                        style: TextStyle(
+                                          color: statusData.color,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 9,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.arrow_forward_ios,
+                                color: Colors.grey.shade400,
+                                size: 12,
                               ),
                             ],
                           ),
                         ),
+
+                        const SizedBox(height: 8),
+
+                        // Info row with all original data
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 140),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Location coordinates - separate lines like original
+                              if (genset.latitude != null && genset.longitude != null) ...[
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade50.withOpacity(0.5),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(Icons.location_on, size: 14, color: Colors.blue.shade600),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              'Latitude: ${genset.latitude!.toStringAsFixed(6)}',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.grey.shade700,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          const SizedBox(width: 22),
+                                          Expanded(
+                                            child: Text(
+                                              'Longitude: ${genset.longitude!.toStringAsFixed(6)}',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.grey.shade700,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                              ],
+
+                              // Power and Customer
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade50,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: Colors.grey.shade200),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(Icons.flash_on, size: 12, color: Colors.grey.shade600),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                "Power",
+                                                style: TextStyle(
+                                                  color: Colors.grey.shade600,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            "${genset.power}",
+                                            style: const TextStyle(
+                                              color: Color(0xFF0F172A),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade50,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: Colors.grey.shade200),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(Icons.business, size: 12, color: Colors.grey.shade600),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                "Customer",
+                                                style: TextStyle(
+                                                  color: Colors.grey.shade600,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            _getCustomerName(genset),
+                                            style: const TextStyle(
+                                              color: Color(0xFF0F172A),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              // Maintenance status - show original text like before
+                              if (genset.maintenanceStatus != null && genset.maintenanceStatus!.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                                           genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                                        ? Colors.amber.shade50
+                                        : Colors.green.shade50,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                                             genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                                          ? Colors.amber.shade200
+                                          : Colors.green.shade200,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                                        genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                                            ? Icons.warning
+                                            : Icons.check_circle,
+                                        color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                                               genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                                            ? Colors.amber.shade600
+                                            : Colors.green.shade600,
+                                        size: 14,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          genset.maintenanceStatus!,
+                                          style: TextStyle(
+                                            color: genset.maintenanceStatus!.toLowerCase().contains('due') ||
+                                                   genset.maintenanceStatus!.toLowerCase().contains('overdue')
+                                                ? Colors.amber.shade700
+                                                : Colors.green.shade700,
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 11,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildCardInfo(String label, String value, IconData icon) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E3A8A).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, size: 16, color: const Color(0xFF1E3A8A)),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildCompactInfo(String label, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
+              Icon(icon, size: 14, color: Colors.grey.shade600),
+              const SizedBox(width: 6),
               Text(
                 label,
                 style: TextStyle(
@@ -848,21 +1627,29 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              Text(
-                value,
-                style: const TextStyle(
-                  color: Color(0xFF0F172A),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
             ],
           ),
-        ),
-      ],
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Color(0xFF0F172A),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
+  }
+
+  String _getLocationDisplay(Genset genset) {
+    if (genset.latitude != null && genset.longitude != null) {
+      return '${genset.latitude?.toStringAsFixed(4)}, ${genset.longitude?.toStringAsFixed(4)}';
+    }
+    return 'N/A';
   }
 
   _StatusVisualData _getStatusVisualData(String status) {
@@ -908,19 +1695,19 @@ class _LiveStatusPageState extends State<LiveStatusPage>
 
   String _translateStatus(String status) {
     final lowerStatus = status.toLowerCase();
-    if (lowerStatus.contains('离线')) {
+    if (lowerStatus.contains('offline') || lowerStatus.contains('离线')) {
       return 'Offline';
-    } else if (lowerStatus.contains('在线') || lowerStatus.contains('online')) {
+    } else if (lowerStatus.contains('online') || lowerStatus.contains('在线')) {
       return 'Online';
-    } else if (lowerStatus.contains('空闲') || lowerStatus.contains('idle')) {
+    } else if (lowerStatus.contains('idle') || lowerStatus.contains('空闲')) {
       return 'Idle';
-    } else if (lowerStatus.contains('运行') || lowerStatus.contains('running')) {
+    } else if (lowerStatus.contains('running') || lowerStatus.contains('运行')) {
       return 'Running';
-    } else if (lowerStatus.contains('报警') || lowerStatus.contains('alarm')) {
+    } else if (lowerStatus.contains('alarm') || lowerStatus.contains('报警')) {
       return 'Alarm';
-    } else if (lowerStatus.contains('故障') || lowerStatus.contains('error')) {
+    } else if (lowerStatus.contains('error') || lowerStatus.contains('故障')) {
       return 'Error';
-    } else if (lowerStatus.contains('待机') || lowerStatus.contains('standby')) {
+    } else if (lowerStatus.contains('standby') || lowerStatus.contains('待机')) {
       return 'Standby';
     } else {
       return status;
@@ -958,8 +1745,6 @@ class _LiveStatusPageState extends State<LiveStatusPage>
     // For now, return the customer field or a default value
     return genset.customer ?? 'N/A';
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -1004,19 +1789,24 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                         return _buildEmptyState();
                       }
 
-                        return RefreshIndicator(
-                          onRefresh: () => gensetProvider.refreshGensets(),
-                          color: const Color(0xFF1E3A8A),
-                          child: ListView.builder(
-                            padding: const EdgeInsets.all(20),
-                            itemCount: gensetProvider.gensets.length,
-                            itemBuilder: (context, index) {
-                              final genset = gensetProvider.gensets[index];
-                              print('🔍 [UI] Rendering genset ${index + 1}/${gensetProvider.gensets.length}: ${genset.gsname} (${genset.powerRating}) - ${genset.statusName}');
-                              return _buildGensetCard(genset);
-                            },
-                          ),
-                        );
+                      return RefreshIndicator(
+                        onRefresh: () async {
+                          // Manually refresh when user pulls down
+                          _fetchGensetsData();
+                          // Also restart auto-refresh timer
+                          _startAutoRefresh();
+                        },
+                        color: const Color(0xFF1E3A8A),
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: gensetProvider.gensets.length,
+                          itemBuilder: (context, index) {
+                            final genset = gensetProvider.gensets[index];
+                            print('🔍 [UI] Rendering genset ${index + 1}/${gensetProvider.gensets.length}: ${genset.gsname} (${genset.powerRating}) - ${genset.statusName}');
+                            return _buildGensetCard(genset);
+                          },
+                        ),
+                      );
                     },
                   ),
                 ),
@@ -1031,88 +1821,95 @@ class _LiveStatusPageState extends State<LiveStatusPage>
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(
+              Icons.electrical_services,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 16),
+          const Expanded(
+            child: Text(
+              "Live Status",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          // Small Refresh button
+          Consumer<GensetProvider>(
+            builder: (context, gensetProvider, child) {
+              return Container(
+                height: 36,
                 decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
                   color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(
-                  Icons.electrical_services,
-                  color: Colors.white,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: 16),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Live Status",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      "Monitor your generators in real-time",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Sync to Airtable button
-              Consumer<GensetProvider>(
-                builder: (context, gensetProvider, child) {
-                  return ElevatedButton.icon(
-                    onPressed: gensetProvider.isLoading
-                        ? null
-                        : () async {
-                            try {
-                              await gensetProvider.fetchGensets();
-                              await gensetProvider.syncToAirtable();
+                child: TextButton.icon(
+                  onPressed: gensetProvider.isLoading
+                      ? null
+                      : () async {
+                          try {
+                            await gensetProvider.fetchGensets();
+                            if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Data fetched and synced to Airtable successfully'),
+                                  content: Text('Data refreshed successfully'),
                                   backgroundColor: Colors.green,
-                                ),
-                              );
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Error: $e'),
-                                  backgroundColor: Colors.red,
+                                  duration: Duration(seconds: 2),
                                 ),
                               );
                             }
-                          },
-                    icon: const Icon(Icons.sync),
-                    label: const Text('Fetch & Sync'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white.withOpacity(0.2),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to refresh: ${e.toString().split(':').first}'),
+                                  backgroundColor: Colors.red,
+                                  duration: Duration(seconds: 3),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  icon: gensetProvider.isLoading
+                      ? Container(
+                          width: 14,
+                          height: 14,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 1.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Icon(Icons.refresh, size: 16, color: Colors.white),
+                  label: const Text(
+                    'Refresh',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
                     ),
-                  );
-                },
-              ),
-            ],
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -1150,6 +1947,14 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                     color: Colors.grey.shade700,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Auto-refresh enabled",
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 12,
                   ),
                 ),
               ],
@@ -1205,7 +2010,7 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton.icon(
-                  onPressed: () => gensetProvider.fetchGensets(),
+                  onPressed: () => _fetchGensetsData(),
                   icon: const Icon(Icons.refresh),
                   label: const Text("Retry"),
                   style: ElevatedButton.styleFrom(
@@ -1270,7 +2075,7 @@ class _LiveStatusPageState extends State<LiveStatusPage>
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton.icon(
-                  onPressed: () => Provider.of<GensetProvider>(context, listen: false).fetchGensets(),
+                  onPressed: () => _fetchGensetsData(),
                   icon: const Icon(Icons.refresh),
                   label: const Text("Check Again"),
                   style: ElevatedButton.styleFrom(
@@ -1303,4 +2108,21 @@ class _StatusVisualData {
     required this.color,
     required this.showPulse,
   });
+}
+
+// Simple wrapper widget that auto-centers on the genset location
+class CenterOnGensetMapWidget extends StatelessWidget {
+  final Genset genset;
+
+  const CenterOnGensetMapWidget({super.key, required this.genset});
+
+  @override
+  Widget build(BuildContext context) {
+    return GensetMapWidget(
+      genset: genset,
+      height: MediaQuery.of(context).size.height,
+      showFullscreenButton: false,
+      showFollowButton: false,
+    );
+  }
 }

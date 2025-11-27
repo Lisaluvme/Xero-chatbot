@@ -285,35 +285,6 @@ class TroubleshootingDetailPage extends StatelessWidget {
                   '• Overloaded circuit',
               style: TextStyle(color: Color(0xFF000000)),
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.tertiary,
-                    foregroundColor: Theme.of(context).colorScheme.onTertiary,
-                  ),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Issue resolved!')),
-                    );
-                  },
-                  child: const Text('Issue Resolved'),
-                ),
-                const SizedBox(width: 16),
-                OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Theme.of(context).colorScheme.tertiary),
-                    foregroundColor: Theme.of(context).colorScheme.tertiary,
-                  ),
-                  onPressed: () {
-                    Navigator.of(context).pushNamed('/contact');
-                  },
-                  child: const Text('Contact Support'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 80),
           ],
         ),
       ),

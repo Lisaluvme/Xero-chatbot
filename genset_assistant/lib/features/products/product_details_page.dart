@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../services/wordpress_service.dart';
+import '../../widgets/quotation_form.dart';
 
 class ProductDetailsPage extends StatefulWidget {
   final Map<String, dynamic> product;
@@ -60,10 +61,6 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
         foregroundColor: Colors.white,
         elevation: 2,
         shadowColor: const Color(0xFF1E3A8A).withOpacity(0.3),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
       ),
       body: _isLoading
           ? const Center(
@@ -194,57 +191,29 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                   const SizedBox(height: 24),
                 ],
 
-                // Action Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          // TODO: Implement Add to Cart functionality
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Add to Cart functionality coming soon!'),
-                              backgroundColor: Color(0xFF1E3A8A),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.shopping_cart),
-                        label: const Text('Add to Cart'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2563EB), // Button Color
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
+                // Action Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      QuotationForm.show(
+                        context,
+                        productName: name,
+                        productDescription: shortDescription.isNotEmpty ? shortDescription : description,
+                        productPrice: price,
+                      );
+                    },
+                    icon: const Icon(Icons.assignment),
+                    label: const Text('Order Now!!'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2563EB), // Button Color
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          // TODO: Implement Buy Now functionality
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Buy Now functionality coming soon!'),
-                              backgroundColor: Color(0xFF14B8A6), // Accent Color
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.flash_on),
-                        label: const Text('Buy Now'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF1E3A8A),
-                          side: const BorderSide(color: Color(0xFF1E3A8A)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
 
                 // Error message if any

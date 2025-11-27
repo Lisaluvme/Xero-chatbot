@@ -2,7 +2,7 @@ name: genset_assistant
 description: A Flutter application to assist users in learning about, maintaining, and troubleshooting generators.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.3.0
+version: 1.3.2
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -16,6 +16,7 @@ dependencies:
   firebase_core: ^4.2.0
   firebase_auth: ^6.1.1
   google_sign_in: ^6.2.1
+  sign_in_with_apple: ^6.1.0
 
   # Mirror API Integration
   retrofit: ^4.8.0
@@ -45,8 +46,18 @@ dependencies:
   # Image caching for better performance
   cached_network_image: ^3.3.0
 
+  # Video player for promotional videos
+  video_player: ^2.8.1
+
+  # OpenStreetMap for location display
+  flutter_map: ^7.0.0
+  latlong2: ^0.9.0
+
   # Flutter launcher icons
   flutter_launcher_icons: ^0.14.4
+
+  # Flutter native splash screen
+  flutter_native_splash: ^2.4.1
 
   # ✅ Google Fonts for custom text styling
   google_fonts: ^6.3.2
@@ -57,6 +68,7 @@ dependencies:
   # Environment variables
   flutter_dotenv: ^6.0.0
   device_info_plus: ^12.2.0
+  flutter_keyboard_visibility: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +80,7 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/video.mp4
     - assets/knowledge_base.json
     - .env
 
@@ -88,3 +101,14 @@ flutter_launcher_icons:
   macos:
     generate: true
     image_path: "assets/Genset App Logo.png"
+
+flutter_native_splash:
+  color: "#FFFFFF"  # White background
+  image: "assets/Genset App Logo.png"
+  color_dark: "#FFFFFF"  # White for dark mode too
+  image_dark: "assets/Genset App Logo.png"
+  android_gravity: center
+  ios_content_mode: center
+  android: true
+  ios: true
+  web: false

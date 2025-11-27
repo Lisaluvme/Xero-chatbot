@@ -96,7 +96,6 @@ class MaintenancePage extends StatelessWidget {
     ];
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.background,
         elevation: 0,
@@ -105,151 +104,150 @@ class MaintenancePage extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Container(
-        color: Theme.of(context).colorScheme.background,
-        child: Column(
-          children: [
-            // Header Section
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 80, 20, 40),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF1E3A8A), Color(0xFF14B8A6)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
+      backgroundColor: Theme.of(context).colorScheme.background,
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100.0),
+        children: [
+          // Header Section - Same style as Troubleshooting
+          Container(
+            padding: const EdgeInsets.all(24),
+            margin: const EdgeInsets.only(bottom: 24),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1E3A8A), Color(0xFF14B8A6)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.settings,
-                    size: 48,
-                    color: Theme.of(context).colorScheme.onPrimary,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.settings,
+                  size: 48,
+                  color: Theme.of(context).colorScheme.onPrimary,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Generator Maintenance',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF000000), // Black text
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Generator Maintenance',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF000000), // Black text
-                    ),
-                    textAlign: TextAlign.center,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Regular care for optimal performance',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF000000), // Black text
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Regular care for optimal performance',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF000000), // Black text
-                    ),
-                    textAlign: TextAlign.center,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+
+          // Maintenance Sections
+          ...sections.asMap().entries.map((entry) {
+            final index = entry.key;
+            final section = entry.value;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
-            ),
-
-            // Maintenance Sections
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 100.0),
-                children: sections.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final section = entry.value;
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (section['color'] as Color).withOpacity(0.15),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
+              child: Material(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MaintenanceDetailPage(
+                          sections: sections,
+                          currentSectionIndex: index,
                         ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(20),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => MaintenanceDetailPage(
-                                sections: sections,
-                                currentSectionIndex: index,
-                              ),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF1E3A8A), Color(0xFF14B8A6)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                          );
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Row(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Icon(
+                            section['icon'] as IconData,
+                            size: 32,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFF1E3A8A), Color(0xFF14B8A6)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Icon(
-                                  section['icon'] as IconData,
-                                  size: 28,
-                                  color: Theme.of(context).colorScheme.onPrimary,
+                              Text(
+                                section['title'] as String,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF000000),
                                 ),
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      section['title'] as String,
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF000000),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      section['description'] as String,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Color(0xFF000000),
-                                        height: 1.3,
-                                      ),
-                                    ),
-                                  ],
+                              const SizedBox(height: 4),
+                              Text(
+                                section['description'] as String,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF000000),
+                                  height: 1.3,
                                 ),
-                              ),
-                              Icon(
-                                Icons.arrow_forward_ios,
-                                color: Theme.of(context).colorScheme.tertiary,
-                                size: 20,
                               ),
                             ],
                           ),
                         ),
-                      ),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          color: Theme.of(context).colorScheme.tertiary,
+                          size: 20,
+                        ),
+                      ],
                     ),
-                  );
-                }).toList(),
+                  ),
+                ),
               ),
-            ),
-          ],
-        ),
+            );
+          }),
+        ],
       ),
     );
   }

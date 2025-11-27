@@ -168,4 +168,37 @@ class ApiService {
   static Future<bool> syncGensetToAirtable(Genset genset) async {
     return BackendService.syncGensetToAirtable(genset);
   }
+
+  /// Delete user account
+  static Future<void> deleteUserAccount(String reAuthToken) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final idToken = await user?.getIdToken();
+
+      final response = await http.delete(
+        Uri.parse('$baseUrl/api/v1/users/me'),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'X-Reauth': reAuthToken,
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Success
+      } else if (response.statusCode == 400) {
+        throw Exception('Missing confirmation');
+      } else if (response.statusCode == 401) {
+        throw Exception('Invalid token');
+      } else if (response.statusCode == 403) {
+        throw Exception('Deletion not allowed');
+      } else if (response.statusCode == 500) {
+        throw Exception('Server error, please retry');
+      } else {
+        throw Exception('Failed to delete account: ${response.statusCode}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

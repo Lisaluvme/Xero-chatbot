@@ -146,7 +146,11 @@ class _LoginPageState extends State<LoginPage> {
                   print('✅ Sign in successful!');
                   if (mounted) {
                     Navigator.of(context).pop(); // Close dialog
-                    Navigator.of(context).pop(); // Close login page - return to homepage
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        Navigator.of(context).popUntil((route) => route.isFirst); // Clear navigation stack and return to homepage
+                      }
+                    });
                     print('🏠 Auth state change will automatically navigate to homepage');
                   }
                 } catch (e) {
@@ -286,9 +290,9 @@ class _LoginPageState extends State<LoginPage> {
 
         print('✅ Google Sign In completed successfully');
 
-        if (mounted) {
-          Navigator.of(context).pop(); // Close login page - return to homepage
-        }
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst); // Clear navigation stack and return to homepage
+      }
 
         print('🏠 Auth state change will automatically navigate to homepage');
       }
@@ -371,7 +375,7 @@ class _LoginPageState extends State<LoginPage> {
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.of(context).pop(); // Close login page - return to homepage
+          Navigator.of(context).popUntil((route) => route.isFirst); // Clear navigation stack and return to homepage
         }
 
         print('🏠 Auth state change will automatically navigate to homepage');
@@ -503,17 +507,19 @@ class _LoginPageState extends State<LoginPage> {
                     width: 80,
                     height: 80,
                     decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF1E3A8A), Color(0xFF14B8A6)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      color: Colors.white,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.flash_on,
-                      size: 40,
-                      color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Image.asset(
+                        'assets/Genset App Logo.png',
+                        errorBuilder: (context, error, stackTrace) => const Icon(
+                          Icons.flash_on,
+                          color: Color(0xFF1E3A8A),
+                          size: 32,
+                        ),
+                      ),
                     ),
                   ),
                   
