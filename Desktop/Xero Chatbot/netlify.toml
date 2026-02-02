@@ -1,0 +1,25 @@
+[build]
+  # Build directory for frontend
+  publish = "frontend"
+  functions = "netlify/functions"
+
+[[redirects]]
+  # Redirect all API calls to Netlify Functions
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  # Xero OAuth callback - redirect to function
+  from = "/xero/callback"
+  to = "/.netlify/functions/xero-callback"
+  status = 200
+
+[[redirects]]
+  # SPA fallback - redirect all other paths to index.html
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[build.environment]
+  NODE_VERSION = "18"
