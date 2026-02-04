@@ -17,10 +17,12 @@
 // For local development: https://localhost:3000
 // For Netlify: /api (uses Netlify Functions)
 // For external backend: https://your-backend-url.com
-const API_BASE_URL = '/.netlify/functions';
+const API_BASE_URL = 'https://localhost:3000';
 
 // Session ID for maintaining conversation context
-const SESSION_ID = 'user_' + Date.now();
+// Use existing session from localStorage or create new one
+const SESSION_ID = localStorage.getItem('xero_session_id') || 'user_' + Date.now();
+localStorage.setItem('xero_session_id', SESSION_ID);
 
 // ==========================================
 // DOM ELEMENTS
@@ -68,21 +70,30 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 async function checkXeroStatus() {
   try {
+    console.log('Checking Xero status for session:', SESSION_ID);
     const response = await fetch(`${API_BASE_URL}/status?session_id=${SESSION_ID}`);
     const data = await response.json();
+
+    console.log('Status response:', data);
 
     if (data.connected) {
       xeroConnected = true;
       updateStatus(true);
       xeroBanner.style.display = 'none';
     } else {
+      // Don't auto-connect - let user manually connect
       xeroConnected = false;
       updateStatus(false);
-      xeroBanner.style.display = 'block';
+      xeroBanner.style.display = 'block'; // Show banner with connect button
+      console.log('Not connected to Xero - waiting for user to connect manually');
     }
   } catch (error) {
     console.error('Status check failed:', error);
+    // Don't auto-connect on error - let user manually connect
+    xeroConnected = false;
     updateStatus(false);
+    xeroBanner.style.display = 'block'; // Show banner with connect button
+    console.log('Status check failed - waiting for user to connect manually');
   }
 }
 
@@ -102,11 +113,17 @@ function updateStatus(connected) {
 /**
  * Handle Xero connection
  */
-btnConnect.addEventListener('click', async () => {
+async function connectToXero() {
   try {
     showLoading(true);
 
-    const response = await fetch(`${API_BASE_URL}/xero-connect?session_id=${SESSION_ID}`);
+    // Add message to inform user
+    addBotMessage('🔗 Connecting to Xero... Please authorize in the popup window.');
+
+    // Store session ID in localStorage for sharing between windows
+    localStorage.setItem('xero_session_id', SESSION_ID);
+
+    const response = await fetch(`${API_BASE_URL}/login?session_id=${SESSION_ID}`);
     const data = await response.json();
 
     if (data.success && data.authorization_url) {
@@ -140,19 +157,28 @@ btnConnect.addEventListener('click', async () => {
       // Stop polling after 5 minutes
       setTimeout(() => {
         clearInterval(checkInterval);
-        showLoading(false);
+        if (!xeroConnected) {
+          showLoading(false);
+          addBotMessage('⏱️ Connection attempt timed out. Click "Connect Xero" to try again.');
+          xeroBanner.style.display = 'block';
+        }
       }, 300000);
 
     } else {
       showLoading(false);
       addBotMessage('❌ Failed to initiate Xero connection. Please try again.');
+      xeroBanner.style.display = 'block';
     }
   } catch (error) {
     showLoading(false);
     console.error('Xero connection error:', error);
     addBotMessage('❌ Error connecting to Xero. Please check your connection and try again.');
+    xeroBanner.style.display = 'block';
   }
-});
+}
+
+// Button click handler
+btnConnect.addEventListener('click', connectToXero);
 
 // ==========================================
 // CHAT FUNCTIONALITY
@@ -298,8 +324,24 @@ function showTypingIndicator(show) {
 /**
  * Show/hide loading overlay
  */
+let loadingTimeout = null;
+
 function showLoading(show) {
   loadingOverlay.style.display = show ? 'flex' : 'none';
+
+  // Auto-hide loading after 10 seconds to prevent infinite loading
+  if (show) {
+    if (loadingTimeout) clearTimeout(loadingTimeout);
+    loadingTimeout = setTimeout(() => {
+      showLoading(false);
+      console.warn('Loading timeout - hiding loading overlay');
+    }, 10000);
+  } else {
+    if (loadingTimeout) {
+      clearTimeout(loadingTimeout);
+      loadingTimeout = null;
+    }
+  }
 }
 
 /**

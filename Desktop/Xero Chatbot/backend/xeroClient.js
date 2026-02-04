@@ -24,15 +24,18 @@ const crypto = require('crypto');
  *
  * This creates the URL where users will be redirected to grant permissions.
  *
+ * @param {string} sessionId - Session ID to include in callback
  * @returns {Object} - Contains authorization URL and state parameter for CSRF protection
  */
-function getAuthorizationUrl() {
+function getAuthorizationUrl(sessionId = null) {
   const clientId = process.env.XERO_CLIENT_ID;
   const redirectUri = process.env.XERO_REDIRECT_URI;
   const scope = process.env.XERO_SCOPE || 'accounting.transactions accounting.contacts accounting.settings offline_access';
 
   // Generate random state parameter for security (CSRF protection)
-  const state = crypto.randomBytes(16).toString('hex');
+  // Encode session_id into the state parameter so it's returned in the callback
+  const randomState = crypto.randomBytes(16).toString('hex');
+  const state = sessionId ? `${sessionId}:${randomState}` : randomState;
 
   // Build authorization URL
   // Xero OAuth 2.0 endpoint: https://login.xero.com/identity/connect/authorize
@@ -60,10 +63,11 @@ async function exchangeCodeForToken(code) {
     console.log('Exchanging code for token...');
     console.log('Redirect URI:', process.env.XERO_REDIRECT_URI);
     console.log('Client ID:', process.env.XERO_CLIENT_ID);
+    console.log('Code (first 20 chars):', code.substring(0, 20) + '...');
 
-    // Token endpoint: https://identity.xero.com/oauth/token
+    // Token endpoint: https://identity.xero.com/connect/token
     const response = await axios.post(
-      'https://identity.xero.com/oauth/token',
+      'https://identity.xero.com/connect/token',
       new URLSearchParams({
         grant_type: 'authorization_code',
         code: code,
@@ -74,11 +78,17 @@ async function exchangeCodeForToken(code) {
       {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        // Allow redirects but track them
+        maxRedirects: 5,
+        beforeRedirect: (options, { headers }) => {
+          console.log('Redirecting to:', options.href || options.url);
         }
       }
     );
 
     console.log('Token response received');
+    console.log('Status:', response.status);
     console.log('Response data keys:', Object.keys(response.data));
     console.log('Full response:', JSON.stringify(response.data, null, 2));
 

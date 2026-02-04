@@ -1,15 +1,13 @@
 /**
- * Groq AI Client for Xero Accounting
+ * GLM-4-Flash Client for Xero Accounting
  *
- * This module handles all interactions with Groq's fast AI models.
+ * This module handles all interactions with Zhipu AI's GLM-4 model.
  * It processes user messages and determines whether to:
  * 1. Create invoices/quotations (returns structured JSON)
  * 2. Answer accounting questions (returns text response)
  *
- * API Documentation: https://console.groq.com/docs
+ * API Documentation: https://open.bigmodel.cn/dev/api
  */
-
-const Groq = require('groq-sdk');
 
 /**
  * Request Queue for GLM API
@@ -59,21 +57,27 @@ const glmQueue = new GLMRequestQueue();
  * Strict JSON output mode for Xero document creation.
  * AI extracts structured data, backend handles validation and calculations.
  */
-const SYSTEM_PROMPT = `You are a JSON extraction engine for Xero accounting documents.
+const SYSTEM_PROMPT = `You are an intelligent Xero accounting assistant. You can:
 
-CRITICAL RULES:
-1. Output ONLY valid JSON. No markdown, no code blocks, no text, no explanations.
-2. Do NOT calculate totals, tax, or discounts. Backend will calculate.
-3. Do NOT guess or invent missing data.
-4. If data is missing, output JSON with "missing_fields" array.
-5. Use YYYY-MM-DD format for dates.
-6. Default currency: MYR.
+1. Answer accounting questions conversationally
+2. Create invoices, quotations, and other Xero documents
+3. Retrieve, update, and delete Xero data (contacts, invoices, accounts, etc.)
+4. Perform calculations and provide accounting advice
 
-SUPPORTED DOCUMENT TYPES:
-- quotation (DRAFT status in Xero)
-- invoice (AUTHORISED status in Xero)
+RESPONSE FORMAT:
+- For questions: Respond in plain text, be helpful and conversational
+- For creating documents: Output ONLY valid JSON (no markdown, no code blocks)
+- For data retrieval: Output JSON with the requested data structure
 
-JSON SCHEMA - QUOTATION:
+WHEN TO OUTPUT JSON:
+Only output JSON when the user explicitly asks to:
+- Create invoice/quotation
+- Add contact/customer
+- Update existing record
+- Delete record
+- Retrieve specific data
+
+JSON SCHEMA - CREATE QUOTATION:
 When user provides complete quotation data, output:
 {
   "action": "create_quotation",
@@ -157,11 +161,69 @@ DEFAULT VALUES:
 - invoice status: "AUTHORISED"
 - type: "ACCREC"
 
-Extract data from user input and output matching JSON schema only.
+CONVERSATION EXAMPLES:
+User: "hi"
+AI: "Hello! I'm your Xero accounting assistant. How can I help you today?"
+
+User: "What's the difference between a quote and an invoice?"
+AI: "A quote (or quotation) is a document you send to a customer before providing goods or services - it's an offer that can be accepted or rejected. An invoice is a request for payment sent after the goods or services have been provided. Quotes can be converted to invoices once accepted."
+
+User: "Create an invoice for ABC Corp for RM1000"
+AI: {JSON output for create_invoice}
+
+Remember: Be conversational and helpful unless the user explicitly requests a Xero operation.
 `;
 
 /**
- * Chat with Groq AI API
+ * Generate JWT token for GLM API authentication
+ * GLM API requires JWT token signed with API secret
+ */
+function generateJWT(apiKey) {
+  const [id, secret] = apiKey.split('.');
+
+  if (!id || !secret) {
+    throw new Error('Invalid API key format');
+  }
+
+  const header = {
+    alg: 'HS256',
+    sign_type: 'SIGN'
+  };
+
+  const now = Date.now();
+  const payload = {
+    api_key: id,
+    exp: now + 3600 * 1000, // 1 hour expiration
+    timestamp: now
+  };
+
+  const crypto = require('crypto');
+
+  function base64UrlEncode(str) {
+    return Buffer.from(str)
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+  }
+
+  const encodedHeader = base64UrlEncode(JSON.stringify(header));
+  const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+  const data = `${encodedHeader}.${encodedPayload}`;
+
+  const signature = crypto
+    .createHmac('sha256', secret)
+    .update(data)
+    .digest('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+
+  return `${data}.${signature}`;
+}
+
+/**
+ * Chat with GLM-4-Flash API
  *
  * @param {string} userMessage - The user's message
  * @param {Array} conversationHistory - Previous conversation for context
@@ -171,10 +233,14 @@ async function chatWithGLM(userMessage, conversationHistory = []) {
   // Use request queue to prevent concurrency limit errors
   return glmQueue.add(async () => {
     try {
-      // Initialize Groq client
-      const groq = new Groq({
-        apiKey: process.env.GROQ_API_KEY || process.env.GLM_API_KEY
-      });
+      const apiKey = process.env.GLM_API_KEY || process.env.GROQ_API_KEY;
+
+      if (!apiKey) {
+        throw new Error('GLM_API_KEY not found in environment variables');
+      }
+
+      // Generate JWT token
+      const token = generateJWT(apiKey);
 
       // Build messages array with system prompt and conversation history
       const messages = [
@@ -189,18 +255,32 @@ async function chatWithGLM(userMessage, conversationHistory = []) {
         }
       ];
 
-      // Make API request to Groq (using llama-3.3-70b-versatile - fast and capable)
-      const response = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 2000,
-        top_p: 0.9
+      // Make API request to GLM-4-Flash
+      const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          model: 'glm-4.7-flash',
+          messages: messages,
+          temperature: 0.7,
+          max_tokens: 2000,
+          top_p: 0.9
+        })
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
       // Extract AI response content
-      const aiContent = response.choices[0].message.content;
-      const usage = response.usage || {};
+      const aiContent = data.choices[0].message.content;
+      const usage = data.usage || {};
 
       // Try to parse response as JSON (for invoice/quotation creation)
       let parsedJSON = null;
@@ -235,17 +315,17 @@ async function chatWithGLM(userMessage, conversationHistory = []) {
         parsedJSON: parsedJSON,
         isJSON: isJSON,
         usage: usage,
-        model: 'llama-3.3-70b-versatile'
+        model: 'glm-4.7-flash'
       };
 
     } catch (error) {
       // Handle API errors
-      console.error('Groq API Error:', error.response?.data || error.message);
+      console.error('GLM API Error:', error.message);
 
       return {
         success: false,
-        error: error.response?.data?.error?.message || error.message,
-        content: 'Sorry, I encountered an error processing your request. Please try again.',
+        error: error.message,
+        content: `Sorry, I encountered an error: ${error.message}. Please try again.`,
         isJSON: false
       };
     }

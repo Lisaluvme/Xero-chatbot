@@ -119,8 +119,8 @@ app.get('/xero/connect', (req, res) => {
       });
     }
 
-    // Generate Xero authorization URL
-    const { url, state } = xeroClient.getAuthorizationUrl();
+    // Generate Xero authorization URL with session_id
+    const { url, state } = xeroClient.getAuthorizationUrl(session_id);
 
     // Store state for CSRF verification during callback
     setSession(session_id, { oauthState: state });
@@ -162,6 +162,15 @@ app.get('/xero/callback', async (req, res) => {
     }
 
     console.log('Callback: Received code, exchanging for token...');
+    console.log('Callback: State:', state);
+
+    // Extract session_id from state parameter (format: "session_id:random_string")
+    let sessionId = 'default';
+    if (state && state.includes(':')) {
+      const parts = state.split(':');
+      sessionId = parts[0];
+      console.log('Callback: Extracted session ID from state:', sessionId);
+    }
 
     // Exchange authorization code for tokens
     const tokenResult = await xeroClient.exchangeCodeForToken(code);
@@ -189,7 +198,8 @@ app.get('/xero/callback', async (req, res) => {
 
     // Store tokens in session
     const tenantId = tenantsResult.tenants[0].tenantId;
-    const sessionId = 'default';
+
+    console.log('Callback: Storing tokens for session:', sessionId);
 
     setSession(sessionId, {
       accessToken: tokenResult.tokens.accessToken,
@@ -409,6 +419,11 @@ app.post('/chat', async (req, res) => {
     }
 
     // Update conversation history (keep last 20 messages)
+    // Initialize conversationHistory if it doesn't exist
+    if (!session.conversationHistory) {
+      session.conversationHistory = [];
+    }
+
     session.conversationHistory.push(
       { role: 'user', content: message },
       { role: 'assistant', content: aiResponse.content }
@@ -829,30 +844,53 @@ app.use((err, req, res, next) => {
 // START SERVER
 // ==========================================
 
-// SSL certificate configuration
-const sslOptions = {
-  key: fs.readFileSync(__dirname + '/key.pem'),
-  cert: fs.readFileSync(__dirname + '/cert.pem')
-};
+// For local development, use HTTP instead of HTTPS
+// This avoids self-signed certificate issues
+if (process.env.NODE_ENV === 'production' && process.env.PORT === '3000') {
+  // Production: Use HTTPS
+  const sslOptions = {
+    key: fs.readFileSync(__dirname + '/key.pem'),
+    cert: fs.readFileSync(__dirname + '/cert.pem')
+  };
 
-// Create HTTPS server
-https.createServer(sslOptions, app).listen(PORT, () => {
-  console.log('╔═══════════════════════════════════════════════════════════════╗');
-  console.log('║              XERO CHATBOT BACKEND STARTED                     ║');
-  console.log('╚═══════════════════════════════════════════════════════════════╝');
-  console.log(`🚀 HTTPS Server running on port ${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`📡 Base URL: https://localhost:${PORT}`);
-  console.log('');
-  console.log('Endpoints:');
-  console.log(`  - Health:     GET  https://localhost:${PORT}/health`);
-  console.log(`  - Login:      GET  https://localhost:${PORT}/login?session_id=xxx`);
-  console.log(`  - Status:     GET  https://localhost:${PORT}/status?session_id=xxx`);
-  console.log(`  - Chat:       POST https://localhost:${PORT}/chat`);
-  console.log(`  - Invoice:    POST https://localhost:${PORT}/create-invoice`);
-  console.log(`  - Disconnect: POST https://localhost:${PORT}/disconnect`);
-  console.log('');
-  console.log('╚═══════════════════════════════════════════════════════════════╝');
-});
+  https.createServer(sslOptions, app).listen(PORT, () => {
+    console.log('╔═══════════════════════════════════════════════════════════════╗');
+    console.log('║              XERO CHATBOT BACKEND STARTED                     ║');
+    console.log('╚═══════════════════════════════════════════════════════════════╝');
+    console.log(`🚀 HTTPS Server running on port ${PORT}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`📡 Base URL: https://localhost:${PORT}`);
+    console.log('');
+    console.log('Endpoints:');
+    console.log(`  - Health:     GET  https://localhost:${PORT}/health`);
+    console.log(`  - Login:      GET  https://localhost:${PORT}/login?session_id=xxx`);
+    console.log(`  - Status:     GET  https://localhost:${PORT}/status?session_id=xxx`);
+    console.log(`  - Chat:       POST https://localhost:${PORT}/chat`);
+    console.log(`  - Invoice:    POST https://localhost:${PORT}/create-invoice`);
+    console.log(`  - Disconnect: POST https://localhost:${PORT}/disconnect`);
+    console.log('');
+    console.log('╚═══════════════════════════════════════════════════════════════╝');
+  });
+} else {
+  // Development: Use HTTP
+  app.listen(PORT, () => {
+    console.log('╔═══════════════════════════════════════════════════════════════╗');
+    console.log('║              XERO CHATBOT BACKEND STARTED                     ║');
+    console.log('╚═══════════════════════════════════════════════════════════════╝');
+    console.log(`🚀 HTTP Server running on port ${PORT}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`📡 Base URL: http://localhost:${PORT}`);
+    console.log('');
+    console.log('Endpoints:');
+    console.log(`  - Health:     GET  http://localhost:${PORT}/health`);
+    console.log(`  - Login:      GET  http://localhost:${PORT}/login?session_id=xxx`);
+    console.log(`  - Status:     GET  http://localhost:${PORT}/status?session_id=xxx`);
+    console.log(`  - Chat:       POST http://localhost:${PORT}/chat`);
+    console.log(`  - Invoice:    POST http://localhost:${PORT}/create-invoice`);
+    console.log(`  - Disconnect: POST http://localhost:${PORT}/disconnect`);
+    console.log('');
+    console.log('╚═══════════════════════════════════════════════════════════════╝');
+  });
+}
 
 module.exports = app;
